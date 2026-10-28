@@ -15,6 +15,7 @@
 pub mod abi;
 pub mod arch;
 pub mod bootargs;
+pub mod callout;
 pub mod cmdline;
 pub mod console;
 mod global;
