@@ -7,7 +7,7 @@ src = "src"
 
 [build]
 # Next to the BSP book's; a stand-alone checkout of the crate builds it
-# in book/build instead (see book/README.md).
+# elsewhere with --dest-dir (see README.md).
 build-dir = "../../build/book/startup"
 
 [output.html]

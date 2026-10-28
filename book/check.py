@@ -4,9 +4,9 @@
 mdBook includes code with {{#include path:anchor}}, where the anchor is a
 pair of comments in the source file:
 
-    // ANCHOR: name
+    // ANCHOR: <name>
     ...
-    // ANCHOR_END: name
+    // ANCHOR_END: <name>
 
 mdBook itself does not fail when an anchor is missing: it silently
 includes nothing. This script makes every reference a hard error instead:
@@ -118,7 +118,7 @@ def main():
                     errors.append(f"{where}: no such path {path}")
             if OTHER_BOOK_SRC is not None and OTHER_BOOK_SRC.is_dir():
                 for m in OTHER_BOOK_LINK.finditer(line):
-                    if not (OTHER_BOOK_SRC / f"{m.group(1)}.md").is_file():
+                    if m.group(1) != "index" and not (OTHER_BOOK_SRC / f"{m.group(1)}.md").is_file():
                         errors.append(f"{where}: no chapter {m.group(1)} in the other book")
 
     for rel in tracked(ANCHOR_SCOPE):
