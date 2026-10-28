@@ -18,6 +18,7 @@ pub mod bootargs;
 pub mod cmdline;
 pub mod console;
 mod global;
+pub mod ram;
 mod startup;
 
 pub use startup::{COMMON_OPTIONS, Startup};
