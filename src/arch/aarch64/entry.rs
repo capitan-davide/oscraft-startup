@@ -75,7 +75,15 @@ global_asm!(
     "    lsr     x9, x9, #2",
     "    cmp     x9, #2",
     "    b.ne    2f",
-    // EL2: EL1 is AArch64 (RW) and HVC is disabled (HCD); nothing traps to
+    // EL2: a boot loader may have left the EL2 MMU and caches on (U-Boot
+    // does); turn them off, as EL1 will run without them. _start cleans
+    // the caches once it has a stack.
+    "    mrs     x10, sctlr_el2",
+    "    mov     x11, #{sctlr_mci}",
+    "    bic     x10, x10, x11",
+    "    msr     sctlr_el2, x10",
+    "    isb",
+    // EL1 is AArch64 (RW) and HVC is disabled (HCD); nothing traps to
     // EL2: not the FPU (CPTR_EL2), not the timers (CNTHCTL_EL2).
     "    ldr     x10, ={hcr_el2}",
     "    msr     hcr_el2, x10",
@@ -104,6 +112,8 @@ global_asm!(
     "    isb",
     "    ret",
     scr_el3 = const (1 << 10) | (1 << 8) | (1 << 0),
+    // SCTLR_EL2's M (MMU), C (data cache) and I (instruction cache).
+    sctlr_mci = const (1 << 0) | (1 << 2) | (1 << 12),
     hcr_el2 = const (1u64 << 31) | (1 << 29),
     // SCTLR_EL1's RES1 bits (29, 28, 23, 22, 20, 11), MMU and caches off.
     sctlr_el1 = const 0x30d0_0800u64,
