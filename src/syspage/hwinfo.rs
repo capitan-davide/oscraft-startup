@@ -122,6 +122,74 @@ impl Hwinfo {
     }
 }
 
+// ANCHOR: hwinfo_tags
+/// The tags drivers read most, as `<hw/sysinfo.h>` lays them out. Each
+/// goes to the last item added.
+impl Hwinfo {
+    /// `location`: a register block of `len` bytes at `base`, registers
+    /// `1 << regshift` bytes apart, in the asinfo entry at `addrspace`.
+    pub fn add_location<const S: usize>(
+        &mut self,
+        strings: &mut StringPool<S>,
+        base: u64,
+        len: u32,
+        regshift: u16,
+        addrspace: u16,
+    ) -> u16 {
+        let mut b = [0u8; 20];
+        b[0..4].copy_from_slice(&len.to_le_bytes());
+        b[4..12].copy_from_slice(&base.to_le_bytes());
+        b[12..14].copy_from_slice(&regshift.to_le_bytes());
+        b[14..16].copy_from_slice(&addrspace.to_le_bytes());
+        self.add_tag(strings, "location", &b, 8)
+    }
+
+    /// `irq`: an interrupt vector.
+    pub fn add_irq<const S: usize>(&mut self, strings: &mut StringPool<S>, vector: u32) -> u16 {
+        self.add_tag(strings, "irq", &vector.to_le_bytes(), 4)
+    }
+
+    /// `inputclk`: an input clock of `clk` Hz, divided by `div`.
+    pub fn add_inputclk<const S: usize>(
+        &mut self,
+        strings: &mut StringPool<S>,
+        clk: u32,
+        div: u32,
+    ) -> u16 {
+        let mut b = [0u8; 8];
+        b[0..4].copy_from_slice(&clk.to_le_bytes());
+        b[4..8].copy_from_slice(&div.to_le_bytes());
+        self.add_tag(strings, "inputclk", &b, 4)
+    }
+
+    /// `nicaddr`: a network interface's MAC address.
+    pub fn add_nicaddr<const S: usize>(
+        &mut self,
+        strings: &mut StringPool<S>,
+        mac: &[u8; 6],
+    ) -> u16 {
+        let mut b = [0u8; 12];
+        b[0..4].copy_from_slice(&6u32.to_le_bytes());
+        b[4..10].copy_from_slice(mac);
+        self.add_tag(strings, "nicaddr", &b, 4)
+    }
+
+    /// `regname`: a named value, such as a register's width.
+    pub fn add_regname<const S: usize>(
+        &mut self,
+        strings: &mut StringPool<S>,
+        name: &str,
+        offset: u16,
+    ) -> u16 {
+        let name = strings.add(name);
+        let mut b = [0u8; 4];
+        b[0..2].copy_from_slice(&name.to_le_bytes());
+        b[2..4].copy_from_slice(&offset.to_le_bytes());
+        self.add_tag(strings, "regname", &b, 4)
+    }
+}
+// ANCHOR_END: hwinfo_tags
+
 /// Add the items every system has: the root group `hw` and, under it, the
 /// bus `unknown` for devices on no particular bus. Returns the bus's
 /// offset.
