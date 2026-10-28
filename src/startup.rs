@@ -18,6 +18,7 @@ use crate::arch::aarch64::handoff::{self, MmuRegs};
 use crate::arch::aarch64::mmu::{Mmu, PAGE_SIZE, Prot};
 use crate::arch::aarch64::{cpu, gic_v2, smp};
 use crate::cmdline::{CmdLine, Getopt, Opt, parse_size};
+use crate::console::{self, DebugDriver};
 use crate::global::Global;
 use crate::kprintln;
 use crate::ram::Ram;
@@ -57,6 +58,8 @@ pub struct Startup {
     /// The flattened device tree the boot loader passed (`-u`): its
     /// physical address and size.
     pub fdt: Option<(u64, u64)>,
+    /// The board's debug UARTs, for `-D`.
+    debug_drivers: &'static [DebugDriver],
 }
 // ANCHOR_END: startup_struct
 
@@ -100,8 +103,21 @@ impl Startup {
             release_cpu: None,
             smp_spin: 0,
             fdt: None,
+            debug_drivers: &[],
         }
     }
+
+    // ANCHOR: init_debug
+    /// Use the first of `drivers` as the debug console, until `-D` selects
+    /// another; [`Startup::boot`] gives the kernel the same device. Call it
+    /// first, before the options, so that startup can print.
+    pub fn init_debug(&mut self, drivers: &'static [DebugDriver]) {
+        self.debug_drivers = drivers;
+        if let Some((driver, port)) = console::select(drivers, None) {
+            console::set(driver, port);
+        }
+    }
+    // ANCHOR_END: init_debug
 
     /// The command-line options: the library's [`COMMON_OPTIONS`] and
     /// the board's own letters, `board_options` (in `getopt()` syntax). A
@@ -112,10 +128,10 @@ impl Startup {
     }
 
     // ANCHOR: common_options
-    /// Apply one of the common options: `-v` (more output), `-P n` (start
-    /// at most n CPUs), `-N name` (the host name), `-r addr,size` (keep
-    /// that RAM from the kernel), `-u reg|addr` (the device tree is at the
-    /// address in x0 at entry, or at addr). The others are accepted and
+    /// Apply one of the common options: `-v` (more output), `-D name.opts`
+    /// (the debug UART), `-P n` (start at most n CPUs), `-N name` (the host
+    /// name), `-r addr,size` (keep that RAM from the kernel), `-u reg|arg`
+    /// (where the device tree's address is). The others are accepted and
     /// ignored.
     pub fn handle_common_option(&mut self, opt: &Opt<'_>) {
         match *opt {
@@ -128,19 +144,45 @@ impl Startup {
                     self.ram.reserve(addr, parse_size(size).0);
                 }
             }
+            Opt::Flag('D', Some(arg)) => match console::select(self.debug_drivers, Some(arg)) {
+                Some((driver, port)) => console::set(driver, port),
+                None => kprintln!("startup: no debug device {arg}"),
+            },
             Opt::Flag('u', Some(arg)) => {
-                let addr = if arg == "reg" {
-                    self.boot_regs[0]
-                } else {
-                    parse_size(arg).0
-                };
-                self.set_fdt(addr);
+                if let Some(addr) = self.fdt_address(arg) {
+                    self.set_fdt(addr);
+                }
             }
             Opt::Flag(_, _) => {}
             Opt::Unknown(c) => kprintln!("startup: unknown option -{c}"),
         }
     }
     // ANCHOR_END: common_options
+
+    // ANCHOR: fdt_address
+    /// Where `-u` says the device tree is. `reg` (and, as in QNX's startup,
+    /// anything but `arg`): its address is in x0 at entry. `arg`: the boot
+    /// loader called startup as `main(argc, argv)`, as U-Boot's `go`
+    /// command does, with the address in hexadecimal in `argv[1]`.
+    fn fdt_address(&self, arg: &str) -> Option<u64> {
+        if arg != "arg" {
+            return Some(self.boot_regs[0]);
+        }
+        let (argc, argv) = (self.boot_regs[0], self.boot_regs[1]);
+        if argc < 2 || argv == 0 {
+            kprintln!("startup: -u arg, but no device tree address in argv");
+            return None;
+        }
+        // SAFETY: the boot loader passed argv, an array of pointers to
+        // NUL-terminated strings, in RAM; the MMU is off.
+        let s = unsafe {
+            let ptr = core::ptr::read_volatile((argv + 8) as *const u64);
+            core::ffi::CStr::from_ptr(ptr as *const core::ffi::c_char)
+        };
+        let hex = s.to_str().ok()?.trim_start_matches("0x");
+        u64::from_str_radix(hex, 16).ok()
+    }
+    // ANCHOR_END: fdt_address
 
     // ANCHOR: set_fdt
     /// Use the flattened device tree at `addr`, if there is one there: it
@@ -295,6 +337,27 @@ impl Startup {
         if let Some((fdt, size)) = self.fdt {
             self.syspage.as_add(fdt, fdt + size - 1, "fdt", mem);
             self.ram.reserve(fdt, size);
+        }
+
+        // The kernel's debug channel: the console's device, unless the
+        // board set the callouts itself.
+        if let Some((driver, port)) = console::current()
+            && self.syspage.callout.debug[0].display_char == 0
+        {
+            let regs = self.map_device(port.base, driver.size);
+            let sp = &mut self.syspage;
+            let mut debug = |c: &'static crate::callout::Callout| {
+                let values: &[u64] = if c.patches == 1 { &[regs] } else { &[] };
+                sp.callouts.add(c, values)
+            };
+            let (d, p, b) = (
+                debug(driver.display_char),
+                debug(driver.poll_key),
+                debug(driver.break_detect),
+            );
+            sp.callout.debug[0].display_char = d;
+            sp.callout.debug[0].poll_key = p;
+            sp.callout.debug[0].break_detect = b;
         }
 
         let (mmu, ram) = self.mmu();

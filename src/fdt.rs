@@ -173,7 +173,7 @@ mod tests {
             self.structs.extend_from_slice(&w.to_be_bytes());
         }
         fn pad(&mut self) {
-            while self.structs.len() % 4 != 0 {
+            while !self.structs.len().is_multiple_of(4) {
                 self.structs.push(0);
             }
         }

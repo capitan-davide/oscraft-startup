@@ -23,6 +23,8 @@ pub mod fdt;
 mod global;
 #[cfg(target_arch = "aarch64")]
 pub mod ifs;
+#[cfg(target_arch = "aarch64")]
+pub mod pl011;
 pub mod qtime;
 pub mod ram;
 #[cfg(target_arch = "aarch64")]
