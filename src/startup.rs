@@ -53,6 +53,9 @@ pub struct Startup {
     /// callout's reference (see [`Startup::init_smp`]).
     release_cpu: Option<fn(usize, u64)>,
     smp_spin: u64,
+    /// The flattened device tree the boot loader passed (`-u`): its
+    /// physical address and size.
+    pub fdt: Option<(u64, u64)>,
 }
 
 /// The one Startup: too big for startup's stack, so it is a static.
@@ -94,6 +97,7 @@ impl Startup {
             cpu_speed_mhz: 0,
             release_cpu: None,
             smp_spin: 0,
+            fdt: None,
         }
     }
 
@@ -108,7 +112,9 @@ impl Startup {
     // ANCHOR: common_options
     /// Apply one of the common options: `-v` (more output), `-P n` (start
     /// at most n CPUs), `-N name` (the host name), `-r addr,size` (keep
-    /// that RAM from the kernel). The others are accepted and ignored.
+    /// that RAM from the kernel), `-u reg|addr` (the device tree is at the
+    /// address in x0 at entry, or at addr). The others are accepted and
+    /// ignored.
     pub fn handle_common_option(&mut self, opt: &Opt<'_>) {
         match *opt {
             Opt::Flag('v', _) => self.debug_level += 1,
@@ -120,11 +126,38 @@ impl Startup {
                     self.ram.reserve(addr, parse_size(size).0);
                 }
             }
+            Opt::Flag('u', Some(arg)) => {
+                let addr = if arg == "reg" {
+                    self.boot_regs[0]
+                } else {
+                    parse_size(arg).0
+                };
+                self.set_fdt(addr);
+            }
             Opt::Flag(_, _) => {}
             Opt::Unknown(c) => kprintln!("startup: unknown option -{c}"),
         }
     }
     // ANCHOR_END: common_options
+
+    // ANCHOR: set_fdt
+    /// Use the flattened device tree at `addr`, if there is one there: it
+    /// stays out of startup's allocations and, for the drivers that read
+    /// it, gets an asinfo entry, `fdt`.
+    pub fn set_fdt(&mut self, addr: u64) {
+        // The header: magic and total size, big-endian.
+        // SAFETY: reading RAM with the MMU off; a wrong address gives a
+        // wrong magic, which is checked.
+        let [magic, size] = unsafe { core::ptr::read_volatile(addr as *const [u32; 2]) };
+        if u32::from_be(magic) != 0xd00d_feed {
+            kprintln!("startup: no device tree at {addr:#x}");
+            return;
+        }
+        let size = u64::from(u32::from_be(size));
+        self.ram.avoid(addr, size);
+        self.fdt = Some((addr, size));
+    }
+    // ANCHOR_END: set_fdt
 
     /// Physical address of the image (the startup header).
     pub fn image_paddr(&self) -> u64 {
@@ -257,14 +290,19 @@ impl Startup {
         self.syspage
             .as_add(ram_paddr + startup_size, ram_end - 1, "bootram", mem);
 
+        if let Some((fdt, size)) = self.fdt {
+            self.syspage.as_add(fdt, fdt + size - 1, "fdt", mem);
+            self.ram.reserve(fdt, size);
+        }
+
         let (mmu, ram) = self.mmu();
         let entry = crate::ifs::load_bootstraps(mmu, ram, ifs, verbose);
 
         // The other CPUs describe themselves in the system page now.
-        if let Some(release) = self.release_cpu {
-            if !smp::start_cpus(&mut self.syspage, self.cpu_speed_mhz, release) {
-                crate::crash!("not all CPUs started (use -P to start fewer)");
-            }
+        if let Some(release) = self.release_cpu
+            && !smp::start_cpus(&mut self.syspage, self.cpu_speed_mhz, release)
+        {
+            crate::crash!("not all CPUs started (use -P to start fewer)");
         }
 
         // The system page's memory: the sections (with room for the
@@ -309,6 +347,9 @@ impl Startup {
         // What is still free is the kernel's. Nothing is allocated after
         // this.
         for (start, end) in self.ram.free() {
+            if self.debug_level > 2 {
+                kprintln!("sysram {start:#x}-{:#x}", end - 1);
+            }
             self.syspage
                 .as_add_containing(start, end - 1, "sysram", "ram");
         }
