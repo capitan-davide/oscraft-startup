@@ -465,6 +465,9 @@ impl Startup {
 
         // SAFETY: RAM startup just allocated for this; the MMU is off.
         let memory = unsafe { core::slice::from_raw_parts_mut(paddr as *mut u8, size as usize) };
+        // Nothing of what was in this RAM before may show through the gaps
+        // between the parts, or the spare room.
+        memory.fill(0);
         let addrs = sp
             .callouts
             .output(&mut memory[sections..sections + code], kern + code_off);
