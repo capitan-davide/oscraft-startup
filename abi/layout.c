@@ -13,11 +13,13 @@
 #include <sys/startup.h>
 #include <sys/syspage.h>
 
+// ANCHOR: layout_macros
 #define SIZE(rust, c)          char abi__##rust##__size[sizeof(c) + 1];
 #define OFF(rust, rf, c, cf)   char abi__##rust##__##rf[offsetof(c, cf) + 1];
 /* A structure ending in a variable-sized array (__FLEXARY): the Rust type
  * stops where the array starts, so its size is the array's offset. */
 #define FLEXSIZE(rust, c, cf)  char abi__##rust##__size[offsetof(c, cf) + 1];
+// ANCHOR_END: layout_macros
 
 SIZE(StartupHeader, struct startup_header)
 OFF(StartupHeader, image_paddr, struct startup_header, image_paddr)
@@ -29,6 +31,7 @@ OFF(StartupHeader, info, struct startup_header, info)
 SIZE(BootArgsEntry, struct bootargs_entry)
 OFF(BootArgsEntry, shdr_addr, struct bootargs_entry, shdr_addr)
 
+// ANCHOR: layout_example
 SIZE(SyspageEntry, struct syspage_entry)
 OFF(SyspageEntry, system_private, struct syspage_entry, system_private)
 OFF(SyspageEntry, version_major, struct syspage_entry, version.major)
@@ -45,6 +48,7 @@ OFF(SyspageEntry, cacheattr, struct syspage_entry, cacheattr)
 OFF(SyspageEntry, intrinfo, struct syspage_entry, intrinfo)
 OFF(SyspageEntry, hypinfo, struct syspage_entry, hypinfo)
 OFF(SyspageEntry, cluster, struct syspage_entry, cluster)
+// ANCHOR_END: layout_example
 
 SIZE(Aarch64SyspageEntry, struct aarch64_syspage_entry)
 OFF(Aarch64SyspageEntry, gic_map, struct aarch64_syspage_entry, gic_map)
