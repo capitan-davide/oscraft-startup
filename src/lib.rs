@@ -20,6 +20,7 @@ pub mod console;
 mod global;
 pub mod ram;
 mod startup;
+pub mod syspage;
 
 pub use startup::{COMMON_OPTIONS, Startup};
 
