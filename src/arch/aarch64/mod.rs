@@ -3,6 +3,7 @@
 pub mod cache;
 pub mod entry;
 pub mod exceptions;
+pub mod mmu;
 
 /// Prepare a CPU that runs at EL1 with a stack: report exceptions, and
 /// drop stale cache lines (see [`cache`]). Called from `_start`.
