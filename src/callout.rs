@@ -67,7 +67,7 @@ impl Callout {
 /// The symbol name (`"my_callout"`) must be unique in the program.
 #[macro_export]
 macro_rules! callout {
-    ($vis:vis static $name:ident, $sym:literal, patches = $patches:expr, $($asm:literal),+ $(,)?) => {
+    ($vis:vis static $name:ident, $sym:literal, patches = $patches:expr, $($asm:expr),+ $(,)?) => {
         core::arch::global_asm!(
             concat!(".section .text.callout.", $sym, ", \"ax\""),
             ".balign 8",
