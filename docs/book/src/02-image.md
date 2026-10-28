@@ -85,11 +85,22 @@ Its fields are 32 bits wide because the format predates 64-bit systems.
 
 ## Startup as a relocatable object
 
-The image is linked for one address, but the same startup program must
-work in images at any address. QNX solves this by shipping startup not as
-an executable but as a *relocatable object*: the output of a partial link
-(`ld -r`), with its relocations still in it. mkifs does the final link
-itself, at the address where the startup code lands in the image.
+Startup's address in the image is not known when startup is compiled:
+the build file decides it (Table 2.1), and one startup program goes into
+every image built for its board.
+
+*Table 2.1: What decides startup's address.*
+
+| Part | Decided by | In Figure 2.1 |
+|---|---|---|
+| Where the image is loaded | `[image=...]` | `0x80000` |
+| The boot prefix, if any | the image format (`raw`, `elf`, `binary`, ...) | `0xfa0` bytes |
+| The startup header | fixed | `0x100` bytes |
+
+QNX therefore ships startup not as an executable but as a *relocatable
+object*: the output of a partial link (`ld -r`), with its relocations
+still in it. mkifs, which knows the final address, does the last link
+step itself.
 
 So the build of a Rust startup ends the same way. The board crate is built
 as a static library; a partial link with `-u _start` pulls in the entry
