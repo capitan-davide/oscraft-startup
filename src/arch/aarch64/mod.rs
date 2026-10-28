@@ -7,6 +7,7 @@ pub mod exceptions;
 pub mod gic_v2;
 pub mod handoff;
 pub mod mmu;
+pub mod smp;
 
 /// Prepare a CPU that runs at EL1 with a stack: report exceptions, and
 /// drop stale cache lines (see [`cache`]). Called from `_start`.

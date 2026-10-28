@@ -16,12 +16,12 @@ use crate::abi::startup::{STARTUP_HDR_SIGNATURE, StartupHeader};
 use crate::abi::syspage::{AS_NULL_OFF, CpupageEntry};
 use crate::arch::aarch64::handoff::{self, MmuRegs};
 use crate::arch::aarch64::mmu::{Mmu, PAGE_SIZE, Prot};
-use crate::arch::aarch64::{cpu, gic_v2};
+use crate::arch::aarch64::{cpu, gic_v2, smp};
 use crate::cmdline::{CmdLine, Getopt, Opt, parse_size};
 use crate::global::Global;
 use crate::kprintln;
 use crate::ram::Ram;
-use crate::syspage::{ASINFO_SPARE, Syspage, strings};
+use crate::syspage::{ASINFO_SPARE, MAX_CPUS, Syspage, strings};
 use core::mem::{MaybeUninit, size_of};
 
 /// The options every startup understands, as in QNX's startup library.
@@ -47,6 +47,12 @@ pub struct Startup {
     pub syspage: Syspage,
     /// The page tables, once [`Startup::init_mmu`] has built them.
     pub mmu: Option<Mmu>,
+    /// The CPUs' speed, for cpuinfo.
+    pub cpu_speed_mhz: u32,
+    /// How the board lets a secondary CPU run, and the `smp_spin`
+    /// callout's reference (see [`Startup::init_smp`]).
+    release_cpu: Option<fn(usize, u64)>,
+    smp_spin: u64,
 }
 
 /// The one Startup: too big for startup's stack, so it is a static.
@@ -85,6 +91,9 @@ impl Startup {
             ram: Ram::new(),
             syspage: Syspage::new(),
             mmu: None,
+            cpu_speed_mhz: 0,
+            release_cpu: None,
+            smp_spin: 0,
         }
     }
 
@@ -147,6 +156,24 @@ impl Startup {
     }
     // ANCHOR_END: add_ram
 
+    // ANCHOR: init_smp
+    /// Use `num_cpus` CPUs (at most `-P`'s number). `release(cpu, entry)`
+    /// is the board's way to let secondary CPU `cpu` run from the physical
+    /// address `entry`. Must come before [`Startup::init_mmu`], which
+    /// gives each CPU its page table.
+    pub fn init_smp(&mut self, num_cpus: usize, release: fn(usize, u64)) {
+        if self.mmu.is_some() {
+            crate::crash!("init_smp() must come before init_mmu()");
+        }
+        let n = num_cpus.min(self.max_cpus).min(MAX_CPUS);
+        self.syspage.num_cpu = n as u16;
+        if n > 1 {
+            self.release_cpu = Some(release);
+            self.smp_spin = self.syspage.callout(&smp::SMP_SPIN, &[]);
+        }
+    }
+    // ANCHOR_END: init_smp
+
     /// Build the page tables for the CPUs the system page describes, with
     /// startup itself mapped 1:1.
     pub fn init_mmu(&mut self) {
@@ -194,6 +221,7 @@ impl Startup {
     /// Describe the boot CPU, running at `speed_mhz`, and set up its GIC
     /// CPU interface.
     pub fn init_boot_cpu(&mut self, speed_mhz: u32) {
+        self.cpu_speed_mhz = speed_mhz;
         cpu::init_cpuinfo(&mut self.syspage, 0, speed_mhz);
         gic_v2::init_cpu(&mut self.syspage.gic_map, 0, self.syspage.num_cpu);
     }
@@ -232,6 +260,13 @@ impl Startup {
         let (mmu, ram) = self.mmu();
         let entry = crate::ifs::load_bootstraps(mmu, ram, ifs, verbose);
 
+        // The other CPUs describe themselves in the system page now.
+        if let Some(release) = self.release_cpu {
+            if !smp::start_cpus(&mut self.syspage, self.cpu_speed_mhz, release) {
+                crate::crash!("not all CPUs started (use -P to start fewer)");
+            }
+        }
+
         // The system page's memory: the sections (with room for the
         // sysram entries still to come), the callouts, the cpupages.
         let n = usize::from(self.syspage.num_cpu);
@@ -268,7 +303,8 @@ impl Startup {
             code as u64,
             Prot::RX,
         );
-        let (tcr, ttbr0, ttbr1) = (mmu.tcr, mmu.ttbr0, mmu.ttbr1(0));
+        let (tcr, ttbr0) = (mmu.tcr, mmu.ttbr0);
+        let ttbr1: [u64; MAX_CPUS] = core::array::from_fn(|c| mmu.ttbr1(c));
 
         // What is still free is the kernel's. Nothing is allocated after
         // this.
@@ -312,7 +348,20 @@ impl Startup {
             kprintln!("System page at phys:{paddr:#x} user:{user:#x} kern:{kern:#x}");
             kprintln!("Starting next program at {entry:#x}");
         }
-        let regs = MmuRegs::new(tcr, ttbr0, ttbr1);
+        if n > 1 {
+            let pending = paddr + u64::from(layout.header.smp.entry_off);
+            let smp_spin = sp.callouts.resolve(self.smp_spin, &addrs);
+            let transfer = smp::Transfer {
+                syspage: kern,
+                smp_spin,
+                tcr,
+                ttbr0,
+                ttbr1,
+                pending,
+            };
+            smp::transfer_cpus(transfer, n);
+        }
+        let regs = MmuRegs::new(tcr, ttbr0, ttbr1[0]);
         // SAFETY: the page tables map startup 1:1, and the kernel and the
         // system page in the kernel's half.
         unsafe { handoff::vstart(kern, entry, 0, &regs) }
