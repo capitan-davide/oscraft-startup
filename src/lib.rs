@@ -20,6 +20,7 @@ pub mod cmdline;
 pub mod console;
 pub mod elf;
 mod global;
+pub mod qtime;
 pub mod ram;
 mod startup;
 pub mod syspage;
@@ -34,8 +35,7 @@ macro_rules! entry {
     ($main:path) => {
         #[unsafe(no_mangle)]
         extern "C" fn __oscraft_startup_main(boot_regs: &[u64; 4]) -> ! {
-            let mut startup = $crate::Startup::new(*boot_regs);
-            $main(&mut startup)
+            $main($crate::Startup::init(*boot_regs))
         }
     };
 }
