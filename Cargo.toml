@@ -1,8 +1,9 @@
 [package]
 name = "oscraft-startup"
 description = "A QNX OS 8.0 startup library: builds the system page and starts the kernel"
-version.workspace = true
-edition.workspace = true
-license.workspace = true
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+repository = "https://github.com/capitan-davide/oscraft-startup"
 
 [dependencies]

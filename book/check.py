@@ -19,10 +19,10 @@ includes nothing. This script makes every reference a hard error instead:
 - every anchor in that tree is used by some chapter;
 - every path written in a code span exists;
 - every source file is listed in the source map;
-- links to the other book point to one of its chapters.
+- links to another book point to one of its chapters.
 
-The configuration is the constants below; the other book has a copy of
-this script with its own.
+The configuration is the constants below; a book that uses this script
+for another tree changes them.
 
 Usage: python3 -I check.py   (exit status 1 on any error)
 """
@@ -36,8 +36,8 @@ BOOK = Path(__file__).resolve().parent
 SRC = BOOK / "src"
 
 # ANCHOR: check_config
-# The startup library's book: its tree is the crate, so that it moves with
-# it to its own repository. Paths in code spans are relative to the crate.
+# The startup library's book: its tree is the repository. Paths in code
+# spans are relative to it.
 ROOT = BOOK.parent
 # Anchors of these paths (relative to ROOT) must be used by this book.
 ANCHOR_SCOPE = ["src", "abi", "startup.ld", "book/check.py"]
@@ -46,9 +46,9 @@ SOURCE_MAP = "appendix-b-source-map.md"
 SOURCES = ["src", "abi"]
 # Code spans that look like paths of this tree.
 PATH_SPAN = re.compile(r"`((?:src|abi|book)/[\w./-]*|startup\.ld)`")
-# Links to the other book, and where its chapters are (None: not checked).
+# Links to other books, and where their chapters are (None: not checked).
 OTHER_BOOK_LINK = re.compile(r"\]\(\.\./bsp/([\w-]+)\.html")
-OTHER_BOOK_SRC = ROOT.parent / "docs" / "book" / "src"
+OTHER_BOOK_SRC = None
 # ANCHOR_END: check_config
 
 INCLUDE = re.compile(r"\{\{#(include|rustdoc_include)\s+([^}\s]+)\s*\}\}")

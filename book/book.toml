@@ -6,9 +6,7 @@ language = "en"
 src = "src"
 
 [build]
-# Next to the BSP book's; a stand-alone checkout of the crate builds it
-# elsewhere with --dest-dir (see README.md).
-build-dir = "../../build/book/startup"
+build-dir = "build"
 
 [output.html]
 default-theme = "light"

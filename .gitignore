@@ -1,0 +1,7 @@
+# Build outputs
+/target/
+/build/
+/book/build/
+
+# Local tool configuration
+/.mcp.json
