@@ -10,7 +10,7 @@ and jumps. This chapter follows it.
 *Listing 13.1: Finishing the boot, `Startup::boot()` (`src/startup.rs`).*
 
 ```rust
-{{#include ../../src/startup.rs:boot}}
+{{#include ../../../src/startup.rs:boot}}
 ```
 
 The steps, in order:
@@ -58,7 +58,7 @@ set up their state, and turns the MMU and caches on.
 *Listing 13.2: Turning the MMU on and jumping, `vstart` (`src/arch/aarch64/handoff.rs`).*
 
 ```rust
-{{#include ../../src/arch/aarch64/handoff.rs:vstart}}
+{{#include ../../../src/arch/aarch64/handoff.rs:vstart}}
 ```
 
 The instruction after `msr sctlr_el1` is fetched with the MMU on, at the

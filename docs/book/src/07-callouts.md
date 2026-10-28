@@ -30,7 +30,7 @@ Listing 7.1 is the `callout` section itself.
 *Listing 7.1: The callout section, `CalloutEntry` (`src/abi/syspage.rs`).*
 
 ```rust
-{{#include ../../src/abi/syspage.rs:callout_entry}}
+{{#include ../../../src/abi/syspage.rs:callout_entry}}
 ```
 
 ## The rules for a callout
@@ -85,7 +85,7 @@ message, instead of being corrupted.
 *Listing 7.2: Patching a 64-bit constant, `patch_mov64()` (`src/callout.rs`).*
 
 ```rust
-{{#include ../../src/callout.rs:patch_mov64}}
+{{#include ../../../src/callout.rs:patch_mov64}}
 ```
 
 QNX's callouts carry a *patcher* function, written in assembly too, that
@@ -105,7 +105,7 @@ to patch.
 *Listing 7.3: The `callout!` macro (`src/callout.rs`).*
 
 ```rust
-{{#include ../../src/callout.rs:callout_macro}}
+{{#include ../../../src/callout.rs:callout_macro}}
 ```
 
 A board's debug callout, for example, takes one patch value, the UART's
@@ -145,7 +145,7 @@ patches its copy, and returns each one's kernel address.
 *Listing 7.4: Copying and patching the callouts, `Table::output()` (`src/callout.rs`).*
 
 ```rust
-{{#include ../../src/callout.rs:callout_output}}
+{{#include ../../../src/callout.rs:callout_output}}
 ```
 
 `resolve_callouts()` (Listing 7.5) then walks every field of the sections
@@ -156,7 +156,7 @@ size, which the kernel needs.
 *Listing 7.5: Replacing references by addresses, `Syspage::resolve_callouts()` (`src/syspage/mod.rs`).*
 
 ```rust
-{{#include ../../src/syspage/mod.rs:resolve_callouts}}
+{{#include ../../../src/syspage/mod.rs:resolve_callouts}}
 ```
 
 Mapping the device registers is the board's or the library's job, before

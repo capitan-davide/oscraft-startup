@@ -14,7 +14,7 @@ the context and passes it on.
 *Listing 4.1: The `entry!` macro (`src/lib.rs`).*
 
 ```rust
-{{#include ../../src/lib.rs:entry_macro}}
+{{#include ../../../src/lib.rs:entry_macro}}
 ```
 
 The board's `main()` never returns: it ends by calling `Startup::boot()`,
@@ -30,7 +30,7 @@ Table 1.1. It plays the part of QNX's startup library's global variables
 *Listing 4.2: The context, `Startup` (`src/startup.rs`).*
 
 ```rust
-{{#include ../../src/startup.rs:startup_struct}}
+{{#include ../../../src/startup.rs:startup_struct}}
 ```
 
 With the system page builder inside it, `Startup` takes about 13 KB, most
@@ -52,7 +52,7 @@ strings, and finds the startup header's address in it.
 *Listing 4.3: Parsing the boot arguments, `CmdLine::parse()` (`src/cmdline.rs`).*
 
 ```rust
-{{#include ../../src/cmdline.rs:cmdline}}
+{{#include ../../../src/cmdline.rs:cmdline}}
 ```
 
 The strings stay in the area; `CmdLine` only holds references to them, up
@@ -66,7 +66,7 @@ word (`-D miniuart`).
 *Listing 4.4: The option parser, `Getopt` (`src/cmdline.rs`).*
 
 ```rust
-{{#include ../../src/cmdline.rs:getopt}}
+{{#include ../../../src/cmdline.rs:getopt}}
 ```
 
 A board parses its own options and the library's in one loop. The library's
@@ -89,7 +89,7 @@ lists all of them.
 *Listing 4.5: The common options, `Startup::handle_common_option()` (`src/startup.rs`).*
 
 ```rust
-{{#include ../../src/startup.rs:common_options}}
+{{#include ../../../src/startup.rs:common_options}}
 ```
 
 ## The debug console
@@ -107,7 +107,7 @@ callouts the kernel uses for the same device (Chapter 7).
 *Listing 4.6: A debug UART, `DebugDriver` (`src/console.rs`).*
 
 ```rust
-{{#include ../../src/console.rs:debug_driver}}
+{{#include ../../../src/console.rs:debug_driver}}
 ```
 
 The board passes its list to `Startup::init_debug()` first thing in
@@ -120,13 +120,13 @@ left empty, and the base is hexadecimal).
 *Listing 4.7: Choosing the console, `Startup::init_debug()` (`src/startup.rs`).*
 
 ```rust
-{{#include ../../src/startup.rs:init_debug}}
+{{#include ../../../src/startup.rs:init_debug}}
 ```
 
 *Listing 4.8: Selecting a driver and port for `-D` (`src/console.rs`).*
 
 ```rust
-{{#include ../../src/console.rs:select}}
+{{#include ../../../src/console.rs:select}}
 ```
 
 On top of the selected driver, `kprintln!` formats with Rust's
@@ -150,7 +150,7 @@ UART as the firmware left it.
 *Listing 4.9: Setting up a PL011, `pl011::init()` (`src/pl011.rs`).*
 
 ```rust
-{{#include ../../src/pl011.rs:pl011_init}}
+{{#include ../../../src/pl011.rs:pl011_init}}
 ```
 
 The divisor is the input clock over 16 times the baud rate, kept in 16.6
@@ -164,5 +164,5 @@ one, and no break detection.
 *Listing 4.10: The PL011's callouts (`src/pl011.rs`).*
 
 ```rust
-{{#include ../../src/pl011.rs:pl011_callouts}}
+{{#include ../../../src/pl011.rs:pl011_callouts}}
 ```

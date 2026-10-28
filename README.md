@@ -15,7 +15,7 @@ has no board code. The first board to use it is the Raspberry Pi 4, in
   headers, which the unit tests check the Rust types against.
 - `startup.ld`: the partial-link script for the startup program mkifs
   takes (see the book, chapter 2).
-- `book/`: the library's book.
+- `docs/book/`: the library's book.
 
 ## Using it
 
@@ -35,6 +35,6 @@ startup.ld`). The book's chapter 14 describes a board crate.
 ```text
 make test         # unit tests, on the host
 make check        # clippy, for the target
-make book         # checks the book's references to the code, builds it in book/build
+make book         # checks the book's references to the code, builds it in docs/book/build
 make abi-layout   # regenerates abi/layout.txt (needs the QNX SDP's environment)
 ```

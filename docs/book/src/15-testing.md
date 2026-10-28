@@ -21,13 +21,13 @@ compiler records in the object file's symbol table.
 *Listing 15.1: Recording a layout as array sizes (`abi/layout.c`).*
 
 ```c
-{{#include ../../abi/layout.c:layout_macros}}
+{{#include ../../../abi/layout.c:layout_macros}}
 ```
 
 *Listing 15.2: Some of the recorded layouts (`abi/layout.c`).*
 
 ```c
-{{#include ../../abi/layout.c:layout_example}}
+{{#include ../../../abi/layout.c:layout_example}}
 ```
 
 `abi/layout.py` compiles nothing itself: it reads the sizes back with the
@@ -81,13 +81,13 @@ its book describes the results.
 ## The book
 
 The book itself is tested too. Its listings come from named anchors in
-the source, and `book/check.py` checks, among other things, that every
+the source, and `docs/book/check.py` checks, among other things, that every
 anchor a chapter names exists, that every anchor in the source is used,
 that the listings come from the crate itself, and that every source file
 appears in the source map. Its configuration (Listing 15.3) says what the
 book's tree is.
 
-*Listing 15.3: The book checker's configuration (`book/check.py`).*
+*Listing 15.3: The book checker's configuration (`docs/book/check.py`).*
 
 ```python
 {{#include ../check.py:check_config}}

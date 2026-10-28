@@ -62,7 +62,7 @@ preparation in Rust, and calls the board's `main()` through the library
 *Listing 3.1: The entry point, `_start` (`src/arch/aarch64/entry.rs`).*
 
 ```rust
-{{#include ../../src/arch/aarch64/entry.rs:start}}
+{{#include ../../../src/arch/aarch64/entry.rs:start}}
 ```
 
 `adrp` and `:lo12:` form a symbol's address relative to the program
@@ -77,7 +77,7 @@ have a stack (Chapter 12).
 *Listing 3.2: From EL3 or EL2 to EL1, `__oscraft_to_el1` (`src/arch/aarch64/entry.rs`).*
 
 ```rust
-{{#include ../../src/arch/aarch64/entry.rs:to_el1}}
+{{#include ../../../src/arch/aarch64/entry.rs:to_el1}}
 ```
 
 At **EL3**, `SCR_EL3` makes the lower levels non-secure and AArch64 and
@@ -120,7 +120,7 @@ line of every cache level, using the cache's geometry from the
 *Listing 3.3: Cleaning the caches by set/way, `clean_invalidate_dcache()` (`src/arch/aarch64/cache.rs`).*
 
 ```rust
-{{#include ../../src/arch/aarch64/cache.rs:clean_invalidate_dcache}}
+{{#include ../../../src/arch/aarch64/cache.rs:clean_invalidate_dcache}}
 ```
 
 For each level up to the *level of coherence* (`LoC`, the level beyond
@@ -139,7 +139,7 @@ vectors that report the exception on the debug console and stop.
 *Listing 3.4: Startup's exception vectors (`src/arch/aarch64/exceptions.rs`).*
 
 ```rust
-{{#include ../../src/arch/aarch64/exceptions.rs:vectors}}
+{{#include ../../../src/arch/aarch64/exceptions.rs:vectors}}
 ```
 
 The table has 16 entries of 128 bytes, for four kinds of exception (a

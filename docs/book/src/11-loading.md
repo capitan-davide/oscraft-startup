@@ -44,13 +44,13 @@ The library first works out these steps from a program header (Listing
 *Listing 11.1: The steps of loading a segment, `Step` (`src/elf.rs`).*
 
 ```rust
-{{#include ../../src/elf.rs:load_step}}
+{{#include ../../../src/elf.rs:load_step}}
 ```
 
 *Listing 11.2: Planning a segment, `elf::plan()` (`src/elf.rs`).*
 
 ```rust
-{{#include ../../src/elf.rs:plan}}
+{{#include ../../../src/elf.rs:plan}}
 ```
 
 A segment with no `.bss` maps its last page whole, partial or not; mkifs
@@ -64,7 +64,7 @@ out, with the page tables and RAM of Chapters 5 and 10.
 *Listing 11.3: Loading one executable, `load_one()` (`src/ifs.rs`).*
 
 ```rust
-{{#include ../../src/ifs.rs:load_one}}
+{{#include ../../../src/ifs.rs:load_one}}
 ```
 
 ## Chaining the bootstrap executables
@@ -83,7 +83,7 @@ executable carries two small structures (Listing 11.4):
 *Listing 11.4: The bootstrap structures (`src/abi/image.rs`).*
 
 ```rust
-{{#include ../../src/abi/image.rs:bootstrap_structs}}
+{{#include ../../../src/abi/image.rs:bootstrap_structs}}
 ```
 
 The addresses are virtual, so startup translates them through the page
@@ -97,7 +97,7 @@ own `next_entry` stays 0, as the QNX startup specification requires.
 *Listing 11.5: Loading the bootstrap executables, `load_bootstraps()` (`src/ifs.rs`).*
 
 ```rust
-{{#include ../../src/ifs.rs:load_bootstraps}}
+{{#include ../../../src/ifs.rs:load_bootstraps}}
 ```
 
 > [!NOTE]

@@ -31,7 +31,7 @@ and the tick's interrupt.
 *Listing 9.1: The clock section, `QtimeEntry` (`src/abi/syspage.rs`).*
 
 ```rust
-{{#include ../../src/abi/syspage.rs:qtime_entry}}
+{{#include ../../../src/abi/syspage.rs:qtime_entry}}
 ```
 
 Besides the frequency, the kernel wants the counter's period as a decimal
@@ -42,7 +42,7 @@ until the digits run out or no more fit in 32 bits.
 *Listing 9.2: The counter's period, `invert_timer_freq()` (`src/qtime.rs`).*
 
 ```rust
-{{#include ../../src/qtime.rs:invert_timer_freq}}
+{{#include ../../../src/qtime.rs:invert_timer_freq}}
 ```
 
 QEMU's counter runs at 62.5 MHz, a period of 16 ns: 16 × 10⁻⁹. The
@@ -75,7 +75,7 @@ programs, which test them.
 *Listing 9.3: The CPU's flags, `cpu::flags()` (`src/arch/aarch64/cpu.rs`).*
 
 ```rust
-{{#include ../../src/arch/aarch64/cpu.rs:cpu_flags}}
+{{#include ../../../src/arch/aarch64/cpu.rs:cpu_flags}}
 ```
 
 The kernel needs both the FPU and the MMU on every CPU, so `CPU_FLAG_MMU`
@@ -88,7 +88,7 @@ secondary CPU when it starts (Chapter 12).
 *Listing 9.4: Describing a CPU, `cpu::init_cpuinfo()` (`src/arch/aarch64/cpu.rs`).*
 
 ```rust
-{{#include ../../src/arch/aarch64/cpu.rs:init_cpuinfo}}
+{{#include ../../../src/arch/aarch64/cpu.rs:init_cpuinfo}}
 ```
 
 ## `cacheattr`
@@ -114,7 +114,7 @@ very large requests and returns 0.
 *Listing 9.5: The cache callouts (`src/arch/aarch64/cpu.rs`).*
 
 ```rust
-{{#include ../../src/arch/aarch64/cpu.rs:cache_callouts}}
+{{#include ../../../src/arch/aarch64/cpu.rs:cache_callouts}}
 ```
 
 ## `idreg_dump`
@@ -128,5 +128,5 @@ unallocated encodings in that space read as zero.
 *Listing 9.6: Reading the ID registers (`src/arch/aarch64/cpu.rs`).*
 
 ```rust
-{{#include ../../src/arch/aarch64/cpu.rs:read_idregs}}
+{{#include ../../../src/arch/aarch64/cpu.rs:read_idregs}}
 ```

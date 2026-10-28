@@ -68,7 +68,7 @@ of `struct startup_header` in `<sys/startup.h>`.
 *Listing 2.2: The startup header, `StartupHeader` (`src/abi/startup.rs`).*
 
 ```rust
-{{#include ../../src/abi/startup.rs:startup_header}}
+{{#include ../../../src/abi/startup.rs:startup_header}}
 ```
 
 The fields startup needs are few:
@@ -99,7 +99,7 @@ compiler's per-function sections into the usual ones, with `_start` first.
 *Listing 2.3: The partial-link script (`startup.ld`).*
 
 ```text
-{{#include ../../startup.ld}}
+{{#include ../../../startup.ld}}
 ```
 
 The script puts `_start` first in `.text`, and that is where the image's
@@ -122,13 +122,13 @@ area the library reserves, and Listing 2.5 what mkifs writes there.
 *Listing 2.4: The boot-arguments area, `boot_args` (`src/bootargs.rs`).*
 
 ```rust
-{{#include ../../src/bootargs.rs:boot_args}}
+{{#include ../../../src/bootargs.rs:boot_args}}
 ```
 
 *Listing 2.5: The boot-arguments header, `BootArgsEntry` (`src/abi/startup.rs`).*
 
 ```rust
-{{#include ../../src/abi/startup.rs:bootargs_entry}}
+{{#include ../../../src/abi/startup.rs:bootargs_entry}}
 ```
 
 The entry also gives the address of the startup header, which is how

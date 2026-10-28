@@ -24,7 +24,7 @@ includes nothing. This script makes every reference a hard error instead:
 The configuration is the constants below; a book that uses this script
 for another tree changes them.
 
-Usage: python3 -I check.py   (exit status 1 on any error)
+Usage: python3 -I docs/book/check.py   (exit status 1 on any error)
 """
 
 import re
@@ -38,14 +38,14 @@ SRC = BOOK / "src"
 # ANCHOR: check_config
 # The startup library's book: its tree is the repository. Paths in code
 # spans are relative to it.
-ROOT = BOOK.parent
+ROOT = BOOK.parent.parent
 # Anchors of these paths (relative to ROOT) must be used by this book.
-ANCHOR_SCOPE = ["src", "abi", "startup.ld", "book/check.py"]
+ANCHOR_SCOPE = ["src", "abi", "startup.ld", "docs/book/check.py"]
 # Source files that must have a row in the source map.
 SOURCE_MAP = "appendix-b-source-map.md"
 SOURCES = ["src", "abi"]
 # Code spans that look like paths of this tree.
-PATH_SPAN = re.compile(r"`((?:src|abi|book)/[\w./-]*|startup\.ld)`")
+PATH_SPAN = re.compile(r"`((?:src|abi|docs)/[\w./-]*|startup\.ld)`")
 # Links to other books, and where their chapters are (None: not checked).
 OTHER_BOOK_LINK = re.compile(r"\]\(\.\./bsp/([\w-]+)\.html")
 OTHER_BOOK_SRC = None

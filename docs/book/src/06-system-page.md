@@ -16,7 +16,7 @@ macro.
 *Listing 6.1: The header, `SyspageEntry` (`src/abi/syspage.rs`).*
 
 ```rust
-{{#include ../../src/abi/syspage.rs:syspage_entry}}
+{{#include ../../../src/abi/syspage.rs:syspage_entry}}
 ```
 
 An `EntryInfo` is `syspage_entry_info` (offset and size), and an
@@ -34,7 +34,7 @@ copy of its ID registers (`idreg_dump`).
 *Listing 6.2: The AArch64 part, `Aarch64SyspageEntry` (`src/abi/syspage.rs`).*
 
 ```rust
-{{#include ../../src/abi/syspage.rs:aarch64_syspage_entry}}
+{{#include ../../../src/abi/syspage.rs:aarch64_syspage_entry}}
 ```
 
 ## The memory it lives in
@@ -57,7 +57,7 @@ the cpupages' (Listing 6.3 shows a cpupage).
 *Listing 6.3: A CPU's page, `CpupageEntry` (`src/abi/syspage.rs`).*
 
 ```rust
-{{#include ../../src/abi/syspage.rs:cpupage_entry}}
+{{#include ../../../src/abi/syspage.rs:cpupage_entry}}
 ```
 
 ## The sections
@@ -115,7 +115,7 @@ from one, and places each piece under the deepest such entry.
 *Listing 6.4: Adding a range under its containers, `Asinfo::add_containing()` (`src/syspage/asinfo.rs`).*
 
 ```rust
-{{#include ../../src/syspage/asinfo.rs:add_containing}}
+{{#include ../../../src/syspage/asinfo.rs:add_containing}}
 ```
 
 Because entries come after their parents in the array, painting the
@@ -140,7 +140,7 @@ own, their owner's offset and their number of children. *Tags* (`location`,
 *Listing 6.5: Adding a tag, `Hwinfo::add_tag()` (`src/syspage/hwinfo.rs`).*
 
 ```rust
-{{#include ../../src/syspage/hwinfo.rs:hwinfo_tag}}
+{{#include ../../../src/syspage/hwinfo.rs:hwinfo_tag}}
 ```
 
 A `location` has a 64-bit base address, which must be 8-byte aligned in
@@ -149,7 +149,7 @@ the section; when it would not be, a one-word `pad` tag goes first.
 *Listing 6.6: The common tags (`src/syspage/hwinfo.rs`).*
 
 ```rust
-{{#include ../../src/syspage/hwinfo.rs:hwinfo_tags}}
+{{#include ../../../src/syspage/hwinfo.rs:hwinfo_tags}}
 ```
 
 Every system has the root group `hw` and, under it, the bus `unknown` for
@@ -165,7 +165,7 @@ name once (Listing 6.7).
 *Listing 6.7: The strings pool, `StringPool` (`src/syspage/strings.rs`).*
 
 ```rust
-{{#include ../../src/syspage/strings.rs:string_pool}}
+{{#include ../../../src/syspage/strings.rs:string_pool}}
 ```
 
 `typed_strings` holds the values behind `confstr()`: each entry is a
@@ -177,7 +177,7 @@ number, the SoC, and the host name (`localhost` unless `-N` gives one).
 *Listing 6.8: The typed strings, `TypedStrings` (`src/syspage/strings.rs`).*
 
 ```rust
-{{#include ../../src/syspage/strings.rs:typed_strings}}
+{{#include ../../../src/syspage/strings.rs:typed_strings}}
 ```
 
 ## Building it
@@ -191,7 +191,7 @@ and the sections are laid out only once, when the system page is written.
 *Listing 6.9: The system page builder, `Syspage` (`src/syspage/mod.rs`).*
 
 ```rust
-{{#include ../../src/syspage/mod.rs:syspage_struct}}
+{{#include ../../../src/syspage/mod.rs:syspage_struct}}
 ```
 
 This works because no section refers to another by address: asinfo
@@ -207,7 +207,7 @@ CPU has no `smp` section.
 *Listing 6.10: Placing the sections, `Syspage::layout()` (`src/syspage/mod.rs`).*
 
 ```rust
-{{#include ../../src/syspage/mod.rs:layout}}
+{{#include ../../../src/syspage/mod.rs:layout}}
 ```
 
 > [!NOTE]

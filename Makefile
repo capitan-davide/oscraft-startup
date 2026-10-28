@@ -23,12 +23,12 @@ abi-layout:
 	ntoaarch64-gcc -c abi/layout.c -o $(BUILD)/layout.o
 	python3 -I abi/layout.py ntoaarch64-nm $(BUILD)/layout.o abi/layout.txt
 
-# The book, in book/build.
+# The book, in docs/book/build.
 book: book-check
-	mdbook build book
+	mdbook build docs/book
 
 book-check:
-	python3 -I book/check.py
+	python3 -I docs/book/check.py
 
 clean:
-	rm -rf $(BUILD) book/build
+	rm -rf $(BUILD) docs/book/build

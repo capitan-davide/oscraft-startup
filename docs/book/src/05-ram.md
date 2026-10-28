@@ -31,7 +31,7 @@ that touch, so that the free RAM is always the fewest, largest ranges.
 *Listing 5.1: Adding a range, `RangeSet::insert()` (`src/ram.rs`).*
 
 ```rust
-{{#include ../../src/ram.rs:rangeset_insert}}
+{{#include ../../../src/ram.rs:rangeset_insert}}
 ```
 
 `partition_point` finds the first range that ends at or after the new
@@ -65,7 +65,7 @@ that read it.
 *Listing 5.2: Taking note of the device tree, `Startup::set_fdt()` (`src/startup.rs`).*
 
 ```rust
-{{#include ../../src/startup.rs:set_fdt}}
+{{#include ../../../src/startup.rs:set_fdt}}
 ```
 
 Where the device tree is depends on the boot loader. With `-u reg`, its
@@ -77,7 +77,7 @@ command does this. Listing 5.3 reads both.
 *Listing 5.3: Where `-u` says the device tree is, `Startup::fdt_address()` (`src/startup.rs`).*
 
 ```rust
-{{#include ../../src/startup.rs:fdt_address}}
+{{#include ../../../src/startup.rs:fdt_address}}
 ```
 
 ## Allocating
@@ -88,7 +88,7 @@ that fits the size and alignment, outside the avoided ranges.
 *Listing 5.4: Allocating RAM, `Ram::alloc()` (`src/ram.rs`).*
 
 ```rust
-{{#include ../../src/ram.rs:ram_alloc}}
+{{#include ../../../src/ram.rs:ram_alloc}}
 ```
 
 For each free range, the loop steps over the avoided ranges inside it and
@@ -115,7 +115,7 @@ the startup header gives (`ram_paddr`, `ram_size`).
 *Listing 5.5: Adding RAM, `Startup::add_ram()` (`src/startup.rs`).*
 
 ```rust
-{{#include ../../src/startup.rs:add_ram}}
+{{#include ../../../src/startup.rs:add_ram}}
 ```
 
 The size of `memory` comes from the CPU: `ID_AA64MMFR0_EL1.PARange` gives

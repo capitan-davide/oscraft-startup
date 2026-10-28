@@ -67,7 +67,7 @@ mappings (the system page, the L0 tables, the devices' registers) go from
 *Listing 10.1: The layout's addresses (`src/arch/aarch64/mmu.rs`).*
 
 ```rust
-{{#include ../../src/arch/aarch64/mmu.rs:address_space}}
+{{#include ../../../src/arch/aarch64/mmu.rs:address_space}}
 ```
 
 > [!WARNING]
@@ -86,7 +86,7 @@ QNX startup specification gives them (Listing 10.2).
 *Listing 10.2: `MAIR_EL1`, `SCTLR_EL1` and `TCR_EL1` (`src/arch/aarch64/mmu.rs`).*
 
 ```rust
-{{#include ../../src/arch/aarch64/mmu.rs:registers}}
+{{#include ../../../src/arch/aarch64/mmu.rs:registers}}
 ```
 
 `MAIR_EL1` defines the eight memory types that `AttrIndx` selects. Its
@@ -110,7 +110,7 @@ coherent.
 *Listing 10.3: Making a page entry, `Mmu::pte()` (`src/arch/aarch64/mmu.rs`).*
 
 ```rust
-{{#include ../../src/arch/aarch64/mmu.rs:pte}}
+{{#include ../../../src/arch/aarch64/mmu.rs:pte}}
 ```
 
 `Mmu::new()` (Listing 10.4) allocates the tables of Figure 10.1: the TTBR0
@@ -121,7 +121,7 @@ Their address there is `L0_vaddr`, which the system page records.
 *Listing 10.4: The initial tables, `Mmu::new()` (`src/arch/aarch64/mmu.rs`).*
 
 ```rust
-{{#include ../../src/arch/aarch64/mmu.rs:mmu_new}}
+{{#include ../../../src/arch/aarch64/mmu.rs:mmu_new}}
 ```
 
 `Mmu::map()` (Listing 10.5) maps a range page by page, allocating L2 and
@@ -138,7 +138,7 @@ plus startup itself, 1:1 in TTBR0.
 *Listing 10.5: Mapping a range, `Mmu::map()` (`src/arch/aarch64/mmu.rs`).*
 
 ```rust
-{{#include ../../src/arch/aarch64/mmu.rs:mmu_map}}
+{{#include ../../../src/arch/aarch64/mmu.rs:mmu_map}}
 ```
 
 All of this happens with the MMU off: the tables are written at their

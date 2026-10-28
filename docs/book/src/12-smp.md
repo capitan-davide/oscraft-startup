@@ -27,7 +27,7 @@ come before the page tables are built, since each CPU gets its own level
 *Listing 12.1: Configuring SMP, `Startup::init_smp()` (`src/startup.rs`).*
 
 ```rust
-{{#include ../../src/startup.rs:init_smp}}
+{{#include ../../../src/startup.rs:init_smp}}
 ```
 
 ## Two steps
@@ -61,13 +61,13 @@ by that number, and calls Rust.
 *Listing 12.2: A secondary CPU's entry (`src/arch/aarch64/smp.rs`).*
 
 ```rust
-{{#include ../../src/arch/aarch64/smp.rs:secondary_entry}}
+{{#include ../../../src/arch/aarch64/smp.rs:secondary_entry}}
 ```
 
 *Listing 12.3: A secondary CPU's work, `__oscraft_secondary_main()` (`src/arch/aarch64/smp.rs`).*
 
 ```rust
-{{#include ../../src/arch/aarch64/smp.rs:secondary_main}}
+{{#include ../../../src/arch/aarch64/smp.rs:secondary_main}}
 ```
 
 Listing 12.4 is the boot CPU's side of both steps. Startup gives up on a
@@ -77,7 +77,7 @@ then start fewer.
 *Listing 12.4: The boot CPU's side, `start_cpus()` and `transfer_cpus()` (`src/arch/aarch64/smp.rs`).*
 
 ```rust
-{{#include ../../src/arch/aarch64/smp.rs:start_cpus}}
+{{#include ../../../src/arch/aarch64/smp.rs:start_cpus}}
 ```
 
 ## Caches across the handover
@@ -98,7 +98,7 @@ caches when it started, so no stale line hides those writes.
 *Listing 12.5: Where a CPU waits for the kernel, the `smp_spin` callout (`src/arch/aarch64/smp.rs`).*
 
 ```rust
-{{#include ../../src/arch/aarch64/smp.rs:smp_spin}}
+{{#include ../../../src/arch/aarch64/smp.rs:smp_spin}}
 ```
 
 The kernel brings a CPU in by writing the address of its per-CPU

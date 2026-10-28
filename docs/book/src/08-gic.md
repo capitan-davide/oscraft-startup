@@ -46,7 +46,7 @@ from `vector_base`; a controller that is wired into another one's input
 *Listing 8.1: An interrupt controller range, `IntrinfoEntry` (`src/abi/syspage.rs`).*
 
 ```rust
-{{#include ../../src/abi/syspage.rs:intrinfo_entry}}
+{{#include ../../../src/abi/syspage.rs:intrinfo_entry}}
 ```
 
 When an interrupt arrives, the kernel runs the `id` callout of each entry
@@ -82,7 +82,7 @@ Listing 8.2 sets the GIC up and describes it.
 *Listing 8.2: Setting up the GIC, `gic_v2::init()` (`src/arch/aarch64/gic_v2.rs`).*
 
 ```rust
-{{#include ../../src/arch/aarch64/gic_v2.rs:gic_init}}
+{{#include ../../../src/arch/aarch64/gic_v2.rs:gic_init}}
 ```
 
 The distributor is turned off while startup sets every SPI to disabled,
@@ -103,7 +103,7 @@ spurious IDs 1022 and 1023. `eoi` writes `x24` back to `GICC_EOIR`.
 *Listing 8.3: The GICv2 callouts (`src/arch/aarch64/gic_v2.rs`).*
 
 ```rust
-{{#include ../../src/arch/aarch64/gic_v2.rs:gic_callouts}}
+{{#include ../../../src/arch/aarch64/gic_v2.rs:gic_callouts}}
 ```
 
 SGI 0 is the kernel's IPI. Its `GICC_IAR` value carries the sending CPU's
@@ -131,7 +131,7 @@ mask to 0xf0, and enables the interface.
 *Listing 8.4: Setting up a CPU's interface, `gic_v2::init_cpu()` (`src/arch/aarch64/gic_v2.rs`).*
 
 ```rust
-{{#include ../../src/arch/aarch64/gic_v2.rs:gic_cpu_init}}
+{{#include ../../../src/arch/aarch64/gic_v2.rs:gic_cpu_init}}
 ```
 
 ## Other controllers
