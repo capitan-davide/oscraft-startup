@@ -1,4 +1,4 @@
-//! A QNX OS 8.0 startup library, in Rust.
+//! A startup library in Rust, compatible with QNX OS 8.0.
 //!
 //! A QNX system boots in two steps. The *startup* program runs first: it
 //! finds out what the hardware is, describes it in the *system page*,

@@ -1,7 +1,7 @@
 # oscraft-startup
 
-A QNX OS 8.0 startup library in Rust: the generic part of a QNX startup
-program, the counterpart of QNX's `libstartup.a`. A board crate adds the
+A startup library in Rust, compatible with QNX OS 8.0: the generic part of
+a startup program, the counterpart of QNX's `libstartup.a`. A board crate adds the
 board's facts and code, and boots QNX's own kernel.
 
 It builds the system page, copies and patches the kernel callouts, sets

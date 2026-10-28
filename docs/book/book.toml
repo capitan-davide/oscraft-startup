@@ -1,6 +1,6 @@
 [book]
 title = "The OsCraft Startup Library"
-description = "How oscraft-startup, a QNX OS 8.0 startup library in Rust, prepares a board for the kernel."
+description = "How oscraft-startup, a startup library in Rust compatible with QNX OS 8.0, prepares a board for the kernel."
 authors = ["The OsCraft authors"]
 language = "en"
 src = "src"

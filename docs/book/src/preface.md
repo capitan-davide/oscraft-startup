@@ -1,7 +1,9 @@
 # Preface
 
-This book explains `oscraft-startup`, a library for writing the *startup
-program* of a QNX OS 8.0 system, in Rust. Startup is the first program
+This book explains `oscraft-startup`, a library in Rust for writing
+*startup programs* compatible with QNX OS 8.0. It is not a QNX product: it
+implements the interface QNX's kernel expects, so that a board can boot
+QNX's own kernel with it. Startup is the first program
 that runs from a QNX boot image. It finds out what the board is,
 describes it to the kernel in a structure called the *system page*, sets
 up the MMU and the CPUs, and starts the kernel. QNX writes its startup

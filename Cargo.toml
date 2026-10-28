@@ -1,6 +1,6 @@
 [package]
 name = "oscraft-startup"
-description = "A QNX OS 8.0 startup library: builds the system page and starts the kernel"
+description = "A startup library compatible with QNX OS 8.0: builds the system page and starts the kernel"
 version = "0.1.0"
 edition = "2024"
 license = "Apache-2.0"
