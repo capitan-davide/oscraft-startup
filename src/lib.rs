@@ -19,6 +19,7 @@ pub mod callout;
 pub mod cmdline;
 pub mod console;
 pub mod elf;
+pub mod fdt;
 mod global;
 #[cfg(target_arch = "aarch64")]
 pub mod ifs;
