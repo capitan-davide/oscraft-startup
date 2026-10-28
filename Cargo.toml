@@ -1,0 +1,8 @@
+[package]
+name = "oscraft-startup"
+description = "A QNX OS 8.0 startup library: builds the system page and starts the kernel"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
