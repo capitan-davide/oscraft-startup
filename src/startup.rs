@@ -321,10 +321,10 @@ impl Startup {
 
         // The image's parts, for the kernel.
         let ifs = self.image_paddr() + u64::from(self.shdr.startup_size);
-        let ifs_size = u64::from(crate::ifs::header(ifs).image_size);
         if self.shdr.flags1 & crate::abi::startup::STARTUP_HDR_FLAGS1_COMPRESS_MASK != 0 {
-            crate::crash!("compressed image file systems are not supported");
+            self.decompress_ifs(ifs);
         }
+        let ifs_size = u64::from(crate::ifs::header(ifs).image_size);
         let mem = self.syspage.as_find("memory").unwrap_or(AS_NULL_OFF);
         let (ram_paddr, startup_size) = (self.ram_paddr(), u64::from(self.shdr.startup_size));
         let ram_end = ram_paddr + u64::from(self.shdr.ram_size);
@@ -473,6 +473,54 @@ impl Startup {
         unsafe { handoff::vstart(kern, entry, 0, &regs) }
     }
     // ANCHOR_END: boot
+}
+
+impl Startup {
+    // ANCHOR: decompress_ifs
+    /// Decompress the image file system in place, at `ifs`: copy the
+    /// compressed blocks to free RAM out of the way, and decompress them
+    /// back. The image's RAM (`ram_size`) has room for the result.
+    fn decompress_ifs(&mut self, ifs: u64) {
+        use crate::decompress::{Algorithm, decompress};
+        let Some(algorithm) = Algorithm::from_flags1(self.shdr.flags1) else {
+            crate::crash!(
+                "unsupported image compression (flags1 {:#x})",
+                self.shdr.flags1
+            );
+        };
+        let stored = u64::from(self.shdr.stored_size - self.shdr.startup_size);
+        let size = u64::from(self.shdr.imagefs_size);
+        if self.image_paddr() + u64::from(self.shdr.startup_size) + size
+            > self.ram_paddr() + u64::from(self.shdr.ram_size)
+        {
+            crate::crash!("the image's RAM cannot hold the decompressed image file system");
+        }
+        let Some(tmp) = self.ram.find(stored, 8) else {
+            crate::crash!("no RAM to decompress the image file system");
+        };
+        if self.debug_level > 0 {
+            kprintln!(
+                "Decompressing the image file system ({algorithm:?}, {stored:#x} to {size:#x} bytes)"
+            );
+        }
+        // SAFETY: tmp is free RAM, not overlapping the image (which is
+        // reserved); nothing else uses either until this returns.
+        let (src, dst) = unsafe {
+            core::ptr::copy_nonoverlapping(ifs as *const u8, tmp as *mut u8, stored as usize);
+            (
+                core::slice::from_raw_parts(tmp as *const u8, stored as usize),
+                core::slice::from_raw_parts_mut(ifs as *mut u8, size as usize),
+            )
+        };
+        match decompress(algorithm, src, dst) {
+            Ok(n) if n as u64 == size => {}
+            Ok(n) => {
+                crate::crash!("image file system: {n:#x} bytes decompressed, {size:#x} expected")
+            }
+            Err(e) => crate::crash!("image file system: cannot decompress: {e:?}"),
+        }
+    }
+    // ANCHOR_END: decompress_ifs
 }
 
 /// Room in the system page for the sysram entries, added after the

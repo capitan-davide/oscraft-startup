@@ -150,6 +150,14 @@ impl Ram {
     /// Allocate `size` bytes aligned to `align` (a power of two), from the
     /// lowest free address that is not avoided.
     pub fn alloc(&mut self, size: u64, align: u64) -> Option<u64> {
+        let addr = self.find(size, align)?;
+        self.reserve(addr, size);
+        Some(addr)
+    }
+
+    /// Where [`Ram::alloc`] would allocate, without allocating: for memory
+    /// startup uses only for a moment, between two allocations.
+    pub fn find(&self, size: u64, align: u64) -> Option<u64> {
         let fits = |s: u64, e: u64| {
             let a = s.checked_next_multiple_of(align)?;
             (a.checked_add(size)? <= e).then_some(a)
@@ -174,9 +182,7 @@ impl Ram {
                 break;
             }
         }
-        let addr = found?;
-        self.reserve(addr, size);
-        Some(addr)
+        found
     }
     // ANCHOR_END: ram_alloc
 
