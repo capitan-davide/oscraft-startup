@@ -53,18 +53,23 @@ global_asm!(
 // ANCHOR: to_el1
 // __oscraft_to_el1: move the CPU from EL3 or EL2 to EL1 (or stay at EL1),
 // with all exceptions masked, and return there. It uses no stack and only
-// x9-x11, so that _start's x0-x3 and the secondary CPUs' arguments survive.
+// x9-x13, so that _start's x0-x3 and the secondary CPUs' arguments survive.
 global_asm!(
     ".section .text.__oscraft_to_el1, \"ax\"",
     ".global __oscraft_to_el1",
     "__oscraft_to_el1:",
+    "    mov     x13, x30",
     "    mrs     x9, CurrentEL",
     "    lsr     x9, x9, #2",
     "    cmp     x9, #3",
     "    b.ne    1f",
-    // EL3: lower ELs are non-secure (NS), AArch64 (RW), HVC enabled (HCE).
+    // EL3: lower ELs are non-secure (NS), AArch64 (RW), HVC enabled (HCE),
+    // and do not trap pointer authentication (API, APK) if the CPU has it.
     "    mov     x10, #{scr_el3}",
-    "    msr     scr_el3, x10",
+    "    bl      __oscraft_has_pauth",
+    "    cbz     x11, 0f",
+    "    orr     x10, x10, #{scr_pauth}",
+    "0:  msr     scr_el3, x10",
     "    msr     cptr_el3, xzr",
     "    adr     x10, 1f",
     "    msr     elr_el3, x10",
@@ -84,9 +89,13 @@ global_asm!(
     "    msr     sctlr_el2, x10",
     "    isb",
     // EL1 is AArch64 (RW) and HVC is disabled (HCD); nothing traps to
-    // EL2: not the FPU (CPTR_EL2), not the timers (CNTHCTL_EL2).
+    // EL2: not the FPU (CPTR_EL2), not the timers (CNTHCTL_EL2), not
+    // pointer authentication (API, APK) if the CPU has it.
     "    ldr     x10, ={hcr_el2}",
-    "    msr     hcr_el2, x10",
+    "    bl      __oscraft_has_pauth",
+    "    cbz     x11, 0f",
+    "    orr     x10, x10, #{hcr_pauth}",
+    "0:  msr     hcr_el2, x10",
     "    msr     cptr_el2, xzr",
     "    msr     hstr_el2, xzr",
     "    mov     x10, #3",
@@ -110,8 +119,10 @@ global_asm!(
     "2:  msr     spsel, #1",
     "    msr     daifset, #0xf",
     "    isb",
-    "    ret",
+    "    ret     x13",
     scr_el3 = const (1 << 10) | (1 << 8) | (1 << 0),
+    scr_pauth = const (1 << 17) | (1 << 16),
+    hcr_pauth = const (1u64 << 41) | (1 << 40),
     // SCTLR_EL2's M (MMU), C (data cache) and I (instruction cache).
     sctlr_mci = const (1 << 0) | (1 << 2) | (1 << 12),
     hcr_el2 = const (1u64 << 31) | (1 << 29),
@@ -122,3 +133,23 @@ global_asm!(
     spsr_el1h = const 0x3c5,
 );
 // ANCHOR_END: to_el1
+
+// __oscraft_has_pauth: x11 = 1 if the CPU has pointer authentication
+// (ID_AA64ISAR1_EL1.{APA, API, GPA, GPI}, ID_AA64ISAR2_EL1.{APA3, GPA3}),
+// else 0. Uses x11 and x12 only, and no stack, for __oscraft_to_el1; it
+// must not change x30's caller, so __oscraft_to_el1 saves x30 in x13.
+global_asm!(
+    ".section .text.__oscraft_has_pauth, \"ax\"",
+    "__oscraft_has_pauth:",
+    "    mov     x11, #1",
+    "    mrs     x12, id_aa64isar1_el1",
+    "    tst     x12, #(0xff << 4)",
+    "    b.ne    1f",
+    "    tst     x12, #(0xff << 24)",
+    "    b.ne    1f",
+    "    mrs     x12, id_aa64isar2_el1",
+    "    tst     x12, #(0xff << 8)",
+    "    b.ne    1f",
+    "    mov     x11, #0",
+    "1:  ret",
+);
