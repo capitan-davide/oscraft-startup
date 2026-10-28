@@ -5,6 +5,7 @@
 
 use crate::abi::syspage::*;
 use crate::callout;
+use crate::global::Global;
 use crate::syspage::Syspage;
 use core::arch::{asm, global_asm};
 
@@ -83,6 +84,53 @@ const FLAG_SHA512: u64 = 0x100_0000;
 const FLAG_SHA3: u64 = 0x200_0000;
 const FLAG_RNDR: u64 = 0x400_0000;
 const FLAG_ICACHE_COHERENT: u64 = 0x800_0000;
+const FLAG_SPECTRE_V2_FIX: u64 = 0x1000;
+const FLAG_SPECTRE_V2_MMU: u64 = 0x2000;
+const FLAG_PAUTH: u64 = 0x2_0000;
+const FLAG_SSBS: u64 = 0x8_0000;
+const FLAG_SVE: u64 = 0x1000_0000;
+
+// ANCHOR: features
+/// What the options ask of every CPU's description, beyond what its ID
+/// registers say.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Features {
+    /// `-e sve`: let the kernel use SVE, if the CPU has it.
+    pub sve: bool,
+    /// `-U`: let the kernel use pointer authentication, if the CPU has it.
+    pub pauth: bool,
+    /// `-E spectrev2`: the kernel's Spectre variant 2 mitigation.
+    pub spectre_v2: bool,
+    /// `-E ssbs`: Speculative Store Bypass Safe.
+    pub ssbs: bool,
+    /// `-X cachesnooped`: the data caches are kept coherent with DMA.
+    pub cache_snooped: bool,
+    /// `-F`: flags to set and to clear, after all others.
+    pub flags_on: u64,
+    pub flags_off: u64,
+}
+// ANCHOR_END: features
+
+static FEATURES: Global<Features> = Global::new(Features {
+    sve: false,
+    pauth: false,
+    spectre_v2: false,
+    ssbs: false,
+    cache_snooped: false,
+    flags_on: 0,
+    flags_off: 0,
+});
+
+/// Use `features` for the CPUs described from now on.
+pub fn set_features(features: Features) {
+    // SAFETY: the boot CPU sets them before any CPU is described.
+    unsafe { *FEATURES.get() = features };
+}
+
+fn features() -> Features {
+    // SAFETY: read-only once the CPUs are being described.
+    unsafe { *FEATURES.get() }
+}
 
 // ANCHOR: cpu_flags
 /// The cpuinfo flags of this CPU, from its ID registers.
@@ -119,7 +167,28 @@ pub fn flags(smp: bool) -> u64 {
     if read!("ctr_el0") & (1 << 29) != 0 {
         f |= FLAG_ICACHE_COHERENT;
     }
-    f
+    // What the options ask for, where the CPU has it.
+    let opt = features();
+    if opt.sve && field(pfr0, 32) == 1 {
+        f |= FLAG_SVE;
+    }
+    // ID_AA64ISAR1_EL1.{APA, API}: address authentication.
+    if opt.pauth && read!("id_aa64isar1_el1") & (0xff << 4) != 0 {
+        f |= FLAG_PAUTH;
+    }
+    if opt.spectre_v2 {
+        // The Cortex-A57 and A72 need the MMU-based mitigation.
+        let part = (read!("midr_el1") >> 4) & 0xfff;
+        f |= if part == 0xd07 || part == 0xd08 {
+            FLAG_SPECTRE_V2_MMU
+        } else {
+            FLAG_SPECTRE_V2_FIX
+        };
+    }
+    if opt.ssbs {
+        f |= FLAG_SSBS;
+    }
+    (f | opt.flags_on) & !opt.flags_off
 }
 // ANCHOR_END: cpu_flags
 
@@ -237,14 +306,29 @@ pub fn init_cpuinfo(sp: &mut Syspage, cpu: usize, speed_mhz: u32) {
         ..Default::default()
     };
     let clidr = read!("clidr_el1");
+    let snooped = if features().cache_snooped {
+        CACHE_FLAG_SNOOPED
+    } else {
+        0
+    };
     if clidr & 4 != 0 {
-        info.data_cache = add_cache(sp, CACHE_FLAG_UNIFIED, cache_geometry(0), &CACHE_DCACHE);
+        info.data_cache = add_cache(
+            sp,
+            CACHE_FLAG_UNIFIED | snooped,
+            cache_geometry(0),
+            &CACHE_DCACHE,
+        );
     } else {
         if clidr & 1 != 0 {
             info.ins_cache = add_cache(sp, CACHE_FLAG_INSTR, cache_geometry(1), &CACHE_ICACHE);
         }
         if clidr & 2 != 0 {
-            info.data_cache = add_cache(sp, CACHE_FLAG_DATA, cache_geometry(0), &CACHE_DCACHE);
+            info.data_cache = add_cache(
+                sp,
+                CACHE_FLAG_DATA | snooped,
+                cache_geometry(0),
+                &CACHE_DCACHE,
+            );
         }
     }
     sp.cpuinfo[cpu] = info;

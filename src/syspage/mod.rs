@@ -85,6 +85,7 @@ pub struct Syspage {
     pub intrinfo: List<IntrinfoEntry, 8>,
     pub smp: SmpEntry,
     pub hypinfo: HypinfoEntry,
+    pub cluster: List<ClusterEntry, 8>,
     pub asinfo: Asinfo,
     pub hwinfo: Hwinfo,
     pub strings: StringPool<STRINGS_SIZE>,
@@ -139,6 +140,7 @@ impl Syspage {
             intrinfo: List::default(),
             smp: SmpEntry::default(),
             hypinfo: HypinfoEntry::default(),
+            cluster: List::default(),
             asinfo: Asinfo::new(),
             hwinfo: Hwinfo::new(),
             strings: StringPool::new(),
@@ -240,7 +242,10 @@ impl Syspage {
             place(core::mem::size_of_val(self.asinfo.entries())),
             size_of::<AsinfoEntry>(),
         );
-        h.cluster = array(place(0), size_of::<ClusterEntry>());
+        h.cluster = array(
+            place(size_of_val(self.cluster.as_slice())),
+            size_of::<ClusterEntry>(),
+        );
         h.size = size_of::<SyspageEntry>() as u16;
         h.total_size = off as u16;
         h.type_ = SYSPAGE_AARCH64;
@@ -331,6 +336,11 @@ impl Syspage {
         put(out, h.strings.entry_off, self.strings.as_slice());
         put(out, h.hwinfo.entry_off, self.hwinfo.as_slice());
         put(out, h.asinfo.entry_off, slice_bytes(self.asinfo.entries()));
+        put(
+            out,
+            h.cluster.entry_off,
+            slice_bytes(self.cluster.as_slice()),
+        );
         layout.total_size
     }
 }

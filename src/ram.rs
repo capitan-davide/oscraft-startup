@@ -186,6 +186,37 @@ impl Ram {
     }
     // ANCHOR_END: ram_alloc
 
+    /// Where the highest `size` bytes aligned to `align` that are free and
+    /// not avoided are, without allocating them.
+    pub fn find_top(&self, size: u64, align: u64) -> Option<u64> {
+        let mut best = None;
+        for (s, e) in self.free.iter() {
+            // The gaps of [s, e) between avoided ranges.
+            let mut lo = s;
+            let mut gaps = self
+                .avoided
+                .iter()
+                .filter(|a| a.1 > s && a.0 < e)
+                .map(|a| (a.0, a.1));
+            loop {
+                let (hi, next_lo) = match gaps.next() {
+                    Some((as_, ae)) => (as_.max(lo), Some(ae)),
+                    None => (e, None),
+                };
+                if let Some(top) = hi.checked_sub(size).map(|t| t & !(align - 1))
+                    && top >= lo
+                {
+                    best = best.max(Some(top));
+                }
+                match next_lo {
+                    Some(n) => lo = lo.max(n),
+                    None => break,
+                }
+            }
+        }
+        best
+    }
+
     /// The free RAM ranges, `[start, end)`.
     pub fn free(&self) -> impl Iterator<Item = (u64, u64)> + '_ {
         self.free.iter()
@@ -244,5 +275,16 @@ mod tests {
         assert_eq!(ram.alloc(0x100_0000, 0x1000), None);
         // The avoided range stays free for the kernel.
         assert!(ram.free().any(|(s, e)| s <= 0x1000 && e >= 0x2000));
+    }
+
+    #[test]
+    fn find_top_takes_the_highest_fit() {
+        let mut ram = Ram::new();
+        ram.add(0, 0x10_0000);
+        ram.add(0x20_0000, 0x10_0000);
+        assert_eq!(ram.find_top(0x2000, 0x1000), Some(0x2f_e000));
+        ram.avoid(0x2f_0000, 0x1_0000);
+        assert_eq!(ram.find_top(0x2000, 0x1000), Some(0x2e_e000));
+        assert_eq!(ram.find_top(0x20_0000, 0x1000), None);
     }
 }

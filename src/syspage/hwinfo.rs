@@ -24,6 +24,7 @@ pub struct Hwinfo {
     bytes: Bytes<HWINFO_SIZE>,
     /// Offset of the item that the next tags belong to.
     last_item: usize,
+    finished: bool,
 }
 
 impl Hwinfo {
@@ -31,6 +32,7 @@ impl Hwinfo {
         Self {
             bytes: Bytes::new(),
             last_item: 0,
+            finished: false,
         }
     }
 
@@ -114,9 +116,41 @@ impl Hwinfo {
         off as u16
     }
 
+    /// The offset of the item named `item_name` (an item's own name, such
+    /// as `unknown`, not its kind), if there is one.
+    pub fn find_item<const S: usize>(
+        &self,
+        strings: &StringPool<S>,
+        item_name: &str,
+    ) -> Option<u16> {
+        let name = strings.find(item_name)?;
+        let b = self.bytes.as_slice();
+        let u16_at = |off: usize| u16::from_le_bytes([b[off], b[off + 1]]);
+        let mut off = 0;
+        while off + 4 <= b.len() {
+            let words = usize::from(u16_at(off));
+            if words == 0 {
+                break;
+            }
+            // Items' kinds start with a capital letter; their own name is
+            // at offset 6.
+            let kind = strings.get(u16_at(off + 2));
+            if kind.starts_with(|c: char| c.is_ascii_uppercase()) && u16_at(off + 6) == name {
+                return Some(off as u16);
+            }
+            off += words * 4;
+        }
+        None
+    }
+
     /// The section as the kernel reads it: the entries, then a zero
-    /// prefix that ends them, padded to 8 bytes.
+    /// prefix that ends them, padded to 8 bytes. [`crate::Startup::boot`]
+    /// calls it.
     pub fn finish(&mut self) {
+        if self.finished {
+            return;
+        }
+        self.finished = true;
         self.bytes.extend(&[0; 4]);
         self.bytes.pad_to(8);
     }
@@ -229,5 +263,8 @@ mod tests {
         hw.add_tag(&mut s, "inputclk", &[0; 8], 4);
         assert_eq!(hw.add_tag(&mut s, "location", &loc, 8), 80);
         assert_eq!(s.get(u16_at(hw.as_slice(), 76 + 2)), "pad");
+        assert_eq!(hw.find_item(&s, "unknown"), Some(12));
+        assert_eq!(hw.find_item(&s, "wdog"), Some(24));
+        assert_eq!(hw.find_item(&s, "location"), None);
     }
 }

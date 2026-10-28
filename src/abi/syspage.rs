@@ -98,6 +98,9 @@ impl core::fmt::Debug for SyspageUnion {
     }
 }
 
+/// `SYSTEM_PRIVATE_FLAG_ABNORMAL_REBOOT`: the last reboot was abnormal.
+pub const SYSTEM_PRIVATE_FLAG_ABNORMAL_REBOOT: u32 = 0x0000_0001;
+
 /// `struct system_private_entry`: what the kernel needs about the system
 /// page itself and the boot.
 #[repr(C)]
@@ -152,6 +155,8 @@ pub struct QtimeEntry {
 
 /// `ClockCycles()` is the same on all CPUs.
 pub const QTIME_FLAG_GLOBAL_CLOCKCYCLES: u32 = 0x0000_0008;
+/// The kernel runs without a periodic tick.
+pub const QTIME_FLAG_TICKLESS: u32 = 0x0000_0004;
 
 /// `struct debug_callout`: one debug channel's callouts.
 #[repr(C)]

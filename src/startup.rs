@@ -13,14 +13,18 @@
 //!    other CPUs and jump.
 
 use crate::abi::startup::{STARTUP_HDR_SIGNATURE, StartupHeader};
-use crate::abi::syspage::{AS_NULL_OFF, CpupageEntry};
+use crate::abi::syspage::{
+    AS_NULL_OFF, ClusterEntry, CpupageEntry, QTIME_FLAG_TICKLESS,
+    SYSTEM_PRIVATE_FLAG_ABNORMAL_REBOOT,
+};
 use crate::arch::aarch64::handoff::{self, MmuRegs};
 use crate::arch::aarch64::mmu::{Mmu, PAGE_SIZE, Prot};
 use crate::arch::aarch64::{cpu, gic_v2, smp};
-use crate::cmdline::{CmdLine, Getopt, Opt, parse_size};
+use crate::cmdline::{CmdLine, Getopt, Opt};
 use crate::console::{self, DebugDriver};
 use crate::global::Global;
 use crate::kprintln;
+use crate::options::Options;
 use crate::ram::Ram;
 use crate::syspage::{ASINFO_SPARE, MAX_CPUS, Syspage, strings};
 use core::mem::{MaybeUninit, size_of};
@@ -60,6 +64,8 @@ pub struct Startup {
     pub fdt: Option<(u64, u64)>,
     /// The board's debug UARTs, for `-D`.
     debug_drivers: &'static [DebugDriver],
+    /// What the common options asked for.
+    pub options: Options,
 }
 // ANCHOR_END: startup_struct
 
@@ -104,6 +110,7 @@ impl Startup {
             smp_spin: 0,
             fdt: None,
             debug_drivers: &[],
+            options: Options::default(),
         }
     }
 
@@ -128,33 +135,43 @@ impl Startup {
     }
 
     // ANCHOR: common_options
-    /// Apply one of the common options: `-v` (more output), `-D name.opts`
-    /// (the debug UART), `-P n` (start at most n CPUs), `-N name` (the host
-    /// name), `-r addr,size` (keep that RAM from the kernel), `-u reg|arg`
-    /// (where the device tree's address is). The others are accepted and
-    /// ignored.
-    pub fn handle_common_option(&mut self, opt: &Opt<'_>) {
-        match *opt {
-            Opt::Flag('v', _) => self.debug_level += 1,
-            Opt::Flag('P', Some(n)) => self.max_cpus = (parse_size(n).0 as usize).max(1),
-            Opt::Flag('N', Some(name)) => self.syspage.add_typed_string(strings::CS_HOSTNAME, name),
-            Opt::Flag('r', Some(arg)) => {
-                let (addr, rest) = parse_size(arg);
-                if let Some(size) = rest.strip_prefix(',') {
-                    self.ram.reserve(addr, parse_size(size).0);
-                }
-            }
-            Opt::Flag('D', Some(arg)) => match console::select(self.debug_drivers, Some(arg)) {
+    /// Apply one of the common options (Appendix A of the book lists them).
+    /// Most are recorded in [`Startup::options`] and take effect later;
+    /// the ones below take effect now, since the board's next steps
+    /// depend on them.
+    pub fn handle_common_option(&mut self, opt: &Opt<'static>) {
+        if let Err(problem) = self.options.apply(opt) {
+            kprintln!("startup: {problem}");
+            return;
+        }
+        let Opt::Flag(c, arg) = *opt else { return };
+        let arg = arg.unwrap_or("");
+        match c {
+            'v' => self.debug_level = self.options.debug_level,
+            'P' => self.max_cpus = self.options.max_cpus.unwrap_or(usize::MAX),
+            'N' => self.syspage.add_typed_string(strings::CS_HOSTNAME, arg),
+            'D' => match console::select(self.debug_drivers, Some(arg)) {
                 Some((driver, port)) => console::set(driver, port),
                 None => kprintln!("startup: no debug device {arg}"),
             },
-            Opt::Flag('u', Some(arg)) => {
+            'u' => {
                 if let Some(addr) = self.fdt_address(arg) {
                     self.set_fdt(addr);
                 }
             }
-            Opt::Flag(_, _) => {}
-            Opt::Unknown(c) => kprintln!("startup: unknown option -{c}"),
+            // RAM the board has not described yet: keep allocations out of
+            // it now, take it from the kernel in boot().
+            'r' => {
+                if let Some(r) = self.options.reserved.as_slice().last() {
+                    self.ram.avoid(r.addr, r.size);
+                }
+            }
+            'j' => {
+                if let Some(addr) = self.options.jtag {
+                    self.ram.avoid(addr, 8);
+                }
+            }
+            _ => {}
         }
     }
     // ANCHOR_END: common_options
@@ -254,11 +271,8 @@ impl Startup {
     /// Build the page tables for the CPUs the system page describes, with
     /// startup itself mapped 1:1.
     pub fn init_mmu(&mut self) {
-        let mut mmu = Mmu::new(
-            &mut self.ram,
-            usize::from(self.syspage.num_cpu),
-            cpu::mmfr0(),
-        );
+        let num_cpu = usize::from(self.syspage.num_cpu);
+        let mut mmu = Mmu::new(&mut self.ram, num_cpu, cpu::mmfr0(), self.options.meltdown);
         let start = self.image_paddr() & !(PAGE_SIZE - 1);
         let end =
             (self.image_paddr() + u64::from(self.shdr.startup_size)).next_multiple_of(PAGE_SIZE);
@@ -292,14 +306,25 @@ impl Startup {
     /// interrupt `intr` (27, the virtual timer's PPI, on most boards).
     pub fn init_qtime(&mut self, intr: i32) {
         cpu::init_timer();
-        self.syspage.qtime = crate::qtime::qtime(cpu::cntfrq(), intr);
+        let freq = self.options.timer_freq.map_or(cpu::cntfrq(), |f| f as u32);
+        self.syspage.qtime = crate::qtime::qtime(freq, intr);
     }
 
     /// Describe the boot CPU, running at `speed_mhz`, and set up its GIC
     /// CPU interface.
     pub fn init_boot_cpu(&mut self, speed_mhz: u32) {
-        self.cpu_speed_mhz = speed_mhz;
-        cpu::init_cpuinfo(&mut self.syspage, 0, speed_mhz);
+        let o = &self.options;
+        self.cpu_speed_mhz = o.cpu_freq.map_or(speed_mhz, |hz| (hz / 1_000_000) as u32);
+        cpu::set_features(cpu::Features {
+            sve: o.sve,
+            pauth: o.pauth,
+            spectre_v2: o.spectre_v2,
+            ssbs: o.ssbs,
+            cache_snooped: o.cache_snooped,
+            flags_on: o.flags_on,
+            flags_off: o.flags_off,
+        });
+        cpu::init_cpuinfo(&mut self.syspage, 0, self.cpu_speed_mhz);
         gic_v2::init_cpu(&mut self.syspage.gic_map, 0, self.syspage.num_cpu);
     }
 
@@ -339,26 +364,20 @@ impl Startup {
             self.ram.reserve(fdt, size);
         }
 
-        // The kernel's debug channel: the console's device, unless the
-        // board set the callouts itself.
+        // The kernel's debug channels: the console's device, unless the
+        // board set the callouts itself, and -K's.
         if let Some((driver, port)) = console::current()
             && self.syspage.callout.debug[0].display_char == 0
         {
-            let regs = self.map_device(port.base, driver.size);
-            let sp = &mut self.syspage;
-            let mut debug = |c: &'static crate::callout::Callout| {
-                let values: &[u64] = if c.patches == 1 { &[regs] } else { &[] };
-                sp.callouts.add(c, values)
-            };
-            let (d, p, b) = (
-                debug(driver.display_char),
-                debug(driver.poll_key),
-                debug(driver.break_detect),
-            );
-            sp.callout.debug[0].display_char = d;
-            sp.callout.debug[0].poll_key = p;
-            sp.callout.debug[0].break_detect = b;
+            self.install_debug(0, driver, port);
         }
+        if let Some(arg) = self.options.debug[1] {
+            match console::select(self.debug_drivers, Some(arg)) {
+                Some((driver, port)) => self.install_debug(1, driver, port),
+                None => kprintln!("startup: no debug device {arg}"),
+            }
+        }
+        self.apply_options();
 
         let (mmu, ram) = self.mmu();
         let entry = crate::ifs::load_bootstraps(mmu, ram, ifs, verbose);
@@ -368,6 +387,23 @@ impl Startup {
             && !smp::start_cpus(&mut self.syspage, self.cpu_speed_mhz, release)
         {
             crate::crash!("not all CPUs started (use -P to start fewer)");
+        }
+
+        // -R: RAM set aside under a name, before the system page takes its
+        // memory.
+        for n in self.options.named.as_slice() {
+            let align = if n.align == 0 { PAGE_SIZE } else { n.align };
+            let found = if n.low {
+                self.ram.find(n.size, align)
+            } else {
+                self.ram.find_top(n.size, align)
+            };
+            let Some(addr) = found else {
+                crate::crash!("-R: no room for {:#x} bytes", n.size);
+            };
+            self.ram.reserve(addr, n.size);
+            self.syspage
+                .as_add_containing(addr, addr + n.size - 1, n.name, "ram");
         }
 
         // The system page's memory: the sections (with room for the
@@ -450,6 +486,11 @@ impl Startup {
             // SAFETY: inside the system page's memory.
             unsafe { core::ptr::write_unaligned(memory[at..].as_mut_ptr().cast(), page) };
         }
+        // -j: the system page's address, where a JTAG debugger looks.
+        if let Some(jtag) = self.options.jtag {
+            // SAFETY: 8 bytes of RAM reserved for this (apply_options()).
+            unsafe { core::ptr::write_volatile(jtag as *mut u64, paddr) };
+        }
         if verbose {
             kprintln!("System page at phys:{paddr:#x} user:{user:#x} kern:{kern:#x}");
             kprintln!("Starting next program at {entry:#x}");
@@ -476,6 +517,87 @@ impl Startup {
 }
 
 impl Startup {
+    /// Give the kernel `driver`'s device at `port` as debug channel
+    /// `channel`: map its registers, and install its callouts.
+    fn install_debug(
+        &mut self,
+        channel: usize,
+        driver: &'static DebugDriver,
+        port: console::DebugPort,
+    ) {
+        let regs = self.map_device(port.base, driver.size);
+        let sp = &mut self.syspage;
+        let mut add = |c: &'static crate::callout::Callout| {
+            let values: &[u64] = if c.patches == 1 { &[regs] } else { &[] };
+            sp.callouts.add(c, values)
+        };
+        let (d, p, b) = (
+            add(driver.display_char),
+            add(driver.poll_key),
+            add(driver.break_detect),
+        );
+        let debug = &mut sp.callout.debug[channel];
+        debug.display_char = d;
+        debug.poll_key = p;
+        debug.break_detect = b;
+    }
+
+    // ANCHOR: apply_options
+    /// Apply the options that wait for the end of the boot: more RAM, RAM
+    /// to keep, clusters, flags, and the nanospin calibration (hwinfo is
+    /// finished here, after it).
+    fn apply_options(&mut self) {
+        let o = self.options;
+        for &(addr, size) in o.extra_ram.as_slice() {
+            self.add_ram(addr, size);
+        }
+        for r in o.reserved.as_slice() {
+            self.ram.reserve(r.addr, r.size);
+            if r.clear {
+                // SAFETY: RAM the user asked to keep from the kernel and
+                // clear; startup does not use it (it is avoided).
+                unsafe { core::ptr::write_bytes(r.addr as *mut u8, 0, r.size as usize) };
+            }
+        }
+        if let Some(addr) = o.jtag {
+            self.ram.reserve(addr, 8);
+        }
+        let sp = &mut self.syspage;
+        for c in o.clusters.as_slice() {
+            let name = sp.strings.add(c.name);
+            sp.cluster.push(ClusterEntry {
+                cpumask: c.cpumask,
+                name,
+                ..Default::default()
+            });
+        }
+        if o.abnormal_reboot {
+            sp.system_private.private_flags |= SYSTEM_PRIVATE_FLAG_ABNORMAL_REBOOT;
+        }
+        if o.tickless {
+            sp.qtime.flags |= QTIME_FLAG_TICKLESS;
+        }
+        if let Some((hundred_loop_time, overhead)) = o.nanospin {
+            let bus = sp
+                .hwinfo
+                .find_item(&sp.strings, "unknown")
+                .unwrap_or(crate::syspage::hwinfo::HWI_NULL_OFF);
+            sp.hwinfo.add_item(
+                &mut sp.strings,
+                "Device",
+                "nanospin_calibrate",
+                bus,
+                &0u32.to_le_bytes(),
+            );
+            let mut body = [0u8; 8];
+            body[..4].copy_from_slice(&hundred_loop_time.to_le_bytes());
+            body[4..].copy_from_slice(&overhead.to_le_bytes());
+            sp.hwinfo.add_tag(&mut sp.strings, "nanospin", &body, 4);
+        }
+        sp.hwinfo.finish();
+    }
+    // ANCHOR_END: apply_options
+
     // ANCHOR: decompress_ifs
     /// Decompress the image file system in place, at `ifs`: copy the
     /// compressed blocks to free RAM out of the way, and decompress them

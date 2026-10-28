@@ -82,6 +82,7 @@ impl Prot {
 // Page and table descriptor bits.
 const PTE_VALID: u64 = 3;
 const PTE_AF: u64 = 1 << 10;
+const PTE_NG: u64 = 1 << 11;
 const PTE_PXN: u64 = 1 << 53;
 const PTE_UXN: u64 = 1 << 54;
 const fn ap(x: u64) -> u64 {
@@ -127,6 +128,9 @@ pub struct Mmu {
     l0_paddr: u64,
     pub l0_vaddr: u64,
     num_cpu: usize,
+    /// Map nothing global (`-E meltdown`): the kernel then unmaps itself
+    /// from user processes' view, against Meltdown.
+    pub non_global: bool,
     /// Next free address in the startup mapping range.
     free_vaddr: u64,
     pub tcr: u64,
@@ -172,6 +176,9 @@ impl Mmu {
         if !prot.device && self.num_cpu > 1 {
             pte |= PTE_ISH;
         }
+        if self.non_global {
+            pte |= PTE_NG;
+        }
         pte
     }
     // ANCHOR_END: pte
@@ -191,13 +198,14 @@ impl Mmu {
 
     // ANCHOR: mmu_new
     /// Allocate the initial tables for `num_cpu` CPUs.
-    pub fn new(ram: &mut Ram, num_cpu: usize, mmfr0: u64) -> Self {
+    pub fn new(ram: &mut Ram, num_cpu: usize, mmfr0: u64, non_global: bool) -> Self {
         let mut mmu = Mmu {
             ttbr0: Self::alloc_table(ram),
             l1: 0,
             l0_paddr: 0,
             l0_vaddr: 0,
             num_cpu,
+            non_global,
             free_vaddr: STARTUP_BASE,
             tcr: tcr_el1(mmfr0),
         };
