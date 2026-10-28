@@ -4,6 +4,8 @@ pub mod cache;
 pub mod cpu;
 pub mod entry;
 pub mod exceptions;
+pub mod gic_v2;
+pub mod handoff;
 pub mod mmu;
 
 /// Prepare a CPU that runs at EL1 with a stack: report exceptions, and
