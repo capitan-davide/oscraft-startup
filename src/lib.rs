@@ -20,11 +20,15 @@ pub mod cmdline;
 pub mod console;
 pub mod elf;
 mod global;
+#[cfg(target_arch = "aarch64")]
+pub mod ifs;
 pub mod qtime;
 pub mod ram;
+#[cfg(target_arch = "aarch64")]
 mod startup;
 pub mod syspage;
 
+#[cfg(target_arch = "aarch64")]
 pub use startup::{COMMON_OPTIONS, Startup};
 
 // ANCHOR: entry_macro
