@@ -1,6 +1,7 @@
 //! AArch64: the entry point, exception levels, caches and the MMU.
 
 pub mod cache;
+pub mod cpu;
 pub mod entry;
 pub mod exceptions;
 pub mod mmu;

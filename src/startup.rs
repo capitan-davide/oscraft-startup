@@ -3,7 +3,11 @@
 
 use crate::abi::startup::{STARTUP_HDR_SIGNATURE, StartupHeader};
 use crate::cmdline::{CmdLine, Getopt, Opt};
+use crate::global::Global;
 use crate::kprintln;
+use crate::ram::Ram;
+use crate::syspage::Syspage;
+use core::mem::MaybeUninit;
 
 /// The options every startup understands, as in QNX's startup library.
 /// A board adds its own letters (see [`Startup::options`]).
@@ -20,13 +24,27 @@ pub struct Startup {
     pub boot_regs: [u64; 4],
     /// Verbosity: the number of `-v` options.
     pub debug_level: u32,
+    /// Physical RAM, and what startup has taken of it.
+    pub ram: Ram,
+    /// The system page being built.
+    pub syspage: Syspage,
 }
 
+/// The one Startup: too big for startup's stack, so it is a static.
+static STARTUP: Global<MaybeUninit<Startup>> = Global::new(MaybeUninit::uninit());
+
 impl Startup {
-    /// Read the boot arguments and the startup header. Called by
+    /// Read the boot arguments and the startup header, once. Called by
     /// [`crate::entry!`] before the board's `main()`.
     #[doc(hidden)]
-    pub fn new(boot_regs: [u64; 4]) -> Self {
+    pub fn init(boot_regs: [u64; 4]) -> &'static mut Self {
+        let s = Self::new(boot_regs);
+        // SAFETY: called once, by the boot CPU, before anything else uses
+        // STARTUP; from now on the board's main() owns it.
+        unsafe { (*STARTUP.get()).write(s) }
+    }
+
+    fn new(boot_regs: [u64; 4]) -> Self {
         let cmdline = match CmdLine::parse(crate::bootargs::area()) {
             Ok(c) => c,
             Err(e) => crate::crash!("bad boot arguments: {e:?}"),
@@ -44,6 +62,8 @@ impl Startup {
             cmdline,
             boot_regs,
             debug_level: 0,
+            ram: Ram::new(),
+            syspage: Syspage::new(),
         }
     }
 
