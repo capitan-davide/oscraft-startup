@@ -219,11 +219,11 @@ impl Syspage {
             size_of::<CpuinfoEntry>(),
         );
         h.cacheattr = array(
-            place(self.cacheattr.as_slice().len() * size_of::<CacheattrEntry>()),
+            place(core::mem::size_of_val(self.cacheattr.as_slice())),
             size_of::<CacheattrEntry>(),
         );
         h.intrinfo = array(
-            place(self.intrinfo.as_slice().len() * size_of::<IntrinfoEntry>()),
+            place(core::mem::size_of_val(self.intrinfo.as_slice())),
             size_of::<IntrinfoEntry>(),
         );
         // A single CPU system has no smp section.
@@ -237,7 +237,7 @@ impl Syspage {
         h.strings = place(self.strings.as_slice().len());
         h.hwinfo = place(self.hwinfo.as_slice().len());
         h.asinfo = array(
-            place(self.asinfo.entries().len() * size_of::<AsinfoEntry>()),
+            place(core::mem::size_of_val(self.asinfo.entries())),
             size_of::<AsinfoEntry>(),
         );
         h.cluster = array(place(0), size_of::<ClusterEntry>());

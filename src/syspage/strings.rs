@@ -38,7 +38,7 @@ impl<const N: usize> Bytes<N> {
 
     /// Append zeros up to a multiple of `align`.
     pub fn pad_to(&mut self, align: usize) {
-        while self.len % align != 0 {
+        while !self.len.is_multiple_of(align) {
             self.extend(&[0]);
         }
     }

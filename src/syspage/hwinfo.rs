@@ -60,8 +60,11 @@ impl Hwinfo {
         body: &[u8],
         align: usize,
     ) -> u16 {
-        assert!(body.len() % 4 == 0, "hwinfo tag body not in 32-bit words");
-        if self.bytes.len() % align != 0 {
+        assert!(
+            body.len().is_multiple_of(4),
+            "hwinfo tag body not in 32-bit words"
+        );
+        if !self.bytes.len().is_multiple_of(align) {
             self.add_tag(strings, "pad", &[], 4);
         }
         let off = self.bytes.len();
@@ -91,7 +94,7 @@ impl Hwinfo {
         extra: &[u8],
     ) -> u16 {
         let item_name = strings.add(item_name);
-        if self.bytes.len() % 4 != 0 {
+        if !self.bytes.len().is_multiple_of(4) {
             self.bytes.pad_to(4);
         }
         let off = self.bytes.len();
