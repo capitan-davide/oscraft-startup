@@ -1,0 +1,162 @@
+//! The `hwinfo` section: devices, for drivers to find their defaults.
+//!
+//! hwinfo is a flattened tree of *items* (a group, a bus, a device) and
+//! *tags* (a device's registers, interrupt, clock). Each entry starts with
+//! a `hwi_prefix`: its size in 32-bit words and the offset of its name in
+//! the strings section. An item also records its own size including its
+//! tags, its item name, its owner (by offset) and how many children it
+//! has. Item names start with a capital letter, tag names do not.
+//!
+//! The kernel itself needs only the root item, the group `hw`. Drivers
+//! read the rest through the C library's `hwi_find_*()` functions.
+
+use super::strings::{Bytes, StringPool};
+
+/// `HWI_NULL_OFF`: no owner (a root item).
+pub const HWI_NULL_OFF: u16 = 0xffff;
+
+/// Room for the section, in bytes.
+pub const HWINFO_SIZE: usize = 1024;
+
+/// The hwinfo section being built.
+#[derive(Clone, Debug, Default)]
+pub struct Hwinfo {
+    bytes: Bytes<HWINFO_SIZE>,
+    /// Offset of the item that the next tags belong to.
+    last_item: usize,
+}
+
+impl Hwinfo {
+    pub const fn new() -> Self {
+        Self {
+            bytes: Bytes::new(),
+            last_item: 0,
+        }
+    }
+
+    pub fn as_slice(&self) -> &[u8] {
+        self.bytes.as_slice()
+    }
+
+    fn word(&mut self, off: usize) -> &mut [u8] {
+        &mut self.bytes.as_mut_slice()[off..off + 2]
+    }
+
+    fn add_u16(&mut self, off: usize, add: u16) {
+        let w = self.word(off);
+        let v = u16::from_le_bytes([w[0], w[1]]) + add;
+        w.copy_from_slice(&v.to_le_bytes());
+    }
+
+    // ANCHOR: hwinfo_tag
+    /// Add a tag named `name` whose fields after the prefix are `body`
+    /// (a multiple of 4 bytes), to the last item. `align` is the alignment
+    /// the tag must start at (8 if it has a 64-bit field); a `pad` tag
+    /// fills the gap.
+    pub fn add_tag<const S: usize>(
+        &mut self,
+        strings: &mut StringPool<S>,
+        name: &str,
+        body: &[u8],
+        align: usize,
+    ) -> u16 {
+        assert!(body.len() % 4 == 0, "hwinfo tag body not in 32-bit words");
+        if self.bytes.len() % align != 0 {
+            self.add_tag(strings, "pad", &[], 4);
+        }
+        let off = self.bytes.len();
+        let words = (4 + body.len()) / 4;
+        let name = strings.add(name);
+        self.bytes.extend(&(words as u16).to_le_bytes());
+        self.bytes.extend(&name.to_le_bytes());
+        self.bytes.extend(body);
+        if off != self.last_item {
+            // The item grows by the tag: offset of itemsize is 4.
+            self.add_u16(self.last_item + 4, words as u16);
+        }
+        off as u16
+    }
+    // ANCHOR_END: hwinfo_tag
+
+    /// Add an item: `type_name` is its kind (`Group`, `Bus`, `Device`),
+    /// `item_name` its name, `owner` its parent's offset (or
+    /// [`HWI_NULL_OFF`]) and `extra` the fields after the common item
+    /// fields (a device's `pnpid`). Returns its offset.
+    pub fn add_item<const S: usize>(
+        &mut self,
+        strings: &mut StringPool<S>,
+        type_name: &str,
+        item_name: &str,
+        owner: u16,
+        extra: &[u8],
+    ) -> u16 {
+        let item_name = strings.add(item_name);
+        if self.bytes.len() % 4 != 0 {
+            self.bytes.pad_to(4);
+        }
+        let off = self.bytes.len();
+        self.last_item = off;
+        let words = (12 + extra.len()) as u16 / 4;
+        let mut body = [0u8; 32];
+        // itemsize, itemname, owner, kids.
+        body[..2].copy_from_slice(&words.to_le_bytes());
+        body[2..4].copy_from_slice(&item_name.to_le_bytes());
+        body[4..6].copy_from_slice(&owner.to_le_bytes());
+        body[8..8 + extra.len()].copy_from_slice(extra);
+        self.add_tag(strings, type_name, &body[..8 + extra.len()], 4);
+        if owner != HWI_NULL_OFF {
+            // The owner's kids count is at offset 10.
+            self.add_u16(usize::from(owner) + 10, 1);
+        }
+        off as u16
+    }
+
+    /// The section as the kernel reads it: the entries, then a zero
+    /// prefix that ends them, padded to 8 bytes.
+    pub fn finish(&mut self) {
+        self.bytes.extend(&[0; 4]);
+        self.bytes.pad_to(8);
+    }
+}
+
+/// Add the items every system has: the root group `hw` and, under it, the
+/// bus `unknown` for devices on no particular bus. Returns the bus's
+/// offset.
+pub fn add_default<const S: usize>(hw: &mut Hwinfo, strings: &mut StringPool<S>) -> u16 {
+    let root = hw.add_item(strings, "Group", "hw", HWI_NULL_OFF, &[]);
+    hw.add_item(strings, "Bus", "unknown", root, &[])
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn u16_at(b: &[u8], off: usize) -> u16 {
+        u16::from_le_bytes([b[off], b[off + 1]])
+    }
+
+    #[test]
+    fn items_tags_and_alignment() {
+        let mut s = StringPool::<256>::new();
+        let mut hw = Hwinfo::new();
+        let bus = add_default(&mut hw, &mut s);
+        assert_eq!(bus, 12);
+        let dev = hw.add_item(&mut s, "Device", "wdog", bus, &7u32.to_le_bytes());
+        assert_eq!(dev, 24);
+        // A location (len, base, regshift, addrspace) must start 8-aligned:
+        // the device ends at 40, so it starts there with no pad.
+        let mut loc = [0u8; 20];
+        loc[0..4].copy_from_slice(&0x114u32.to_le_bytes());
+        loc[8..16].copy_from_slice(&0xfe10_0000u64.to_le_bytes());
+        assert_eq!(hw.add_tag(&mut s, "location", &loc, 8), 40);
+        let b = hw.as_slice();
+        // The root has 1 kid, the bus 1; the device grew by the tag.
+        assert_eq!(u16_at(b, 10), 1);
+        assert_eq!(u16_at(b, 12 + 10), 1);
+        assert_eq!(u16_at(b, 24 + 4), 4 + 6);
+        // A 12-byte tag (64..76) puts the next 8-aligned tag after a pad.
+        hw.add_tag(&mut s, "inputclk", &[0; 8], 4);
+        assert_eq!(hw.add_tag(&mut s, "location", &loc, 8), 80);
+        assert_eq!(s.get(u16_at(hw.as_slice(), 76 + 2)), "pad");
+    }
+}
