@@ -28,6 +28,7 @@ use core::mem::{MaybeUninit, size_of};
 /// A board adds its own letters (see [`Startup::options`]).
 pub const COMMON_OPTIONS: &str = "ACc:D:F:f:I:i:K:M:N:o:P:R:S:Tvr:j:ZHQ:E:X:Uu:e:";
 
+// ANCHOR: startup_struct
 /// Startup's state during the boot.
 pub struct Startup {
     /// The startup header that mkifs put in front of startup.
@@ -57,6 +58,7 @@ pub struct Startup {
     /// physical address and size.
     pub fdt: Option<(u64, u64)>,
 }
+// ANCHOR_END: startup_struct
 
 /// The one Startup: too big for startup's stack, so it is a static.
 static STARTUP: Global<MaybeUninit<Startup>> = Global::new(MaybeUninit::uninit());

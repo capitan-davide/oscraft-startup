@@ -7,11 +7,13 @@
 use crate::global::Global;
 use core::fmt;
 
+// ANCHOR: debug_device
 /// A device startup can print on.
 pub trait DebugDevice: Sync {
     /// Write one byte, waiting until the device can take it.
     fn putc(&self, byte: u8);
 }
+// ANCHOR_END: debug_device
 
 static CONSOLE: Global<Option<&'static dyn DebugDevice>> = Global::new(None);
 
