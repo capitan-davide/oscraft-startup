@@ -12,6 +12,7 @@
 
 #![no_std]
 
+pub mod abi;
 pub mod arch;
 pub mod bootargs;
 
@@ -34,6 +35,7 @@ macro_rules! entry {
     };
 }
 
+#[cfg(not(test))]
 #[panic_handler]
 fn panic(_info: &core::panic::PanicInfo) -> ! {
     loop {
