@@ -18,6 +18,7 @@ pub mod bootargs;
 pub mod callout;
 pub mod cmdline;
 pub mod console;
+pub mod decompress;
 pub mod elf;
 pub mod fdt;
 mod global;
