@@ -111,16 +111,13 @@ number in bits 10-12, and the PPI `id` callout ends it immediately with
 that full value, so that the IPI can be raised again while the kernel
 handles it; `eoi` then skips it.
 
-`send_ipi(syspage, cpu, cmd, &ipicmds[cpu])` sets the command bits in the
-target CPU's word with an exclusive load/store pair, and raises SGI 0 on
-it only if the word was empty: a CPU with an IPI already pending will see
-the new command too.
-
-> [!NOTE]
-> `send_ipi` targets CPU `cpu` by setting bit `16 + cpu` of `GICD_SGIR`: it
-> assumes that a CPU's number in the kernel is its GIC CPU interface's
-> number. `gic_map` records the interface of each CPU, and on boards where
-> the two differ, `send_ipi` would have to read it.
+`send_ipi(syspage, target, cmd, &ipicmds[cpu])` sets the command bits in
+the target CPU's word with an exclusive load/store pair, and raises SGI 0
+on it only if the word was empty: a CPU with an IPI already pending will
+see the new command too. The kernel takes `target` from `gic_map`, so it
+is the CPU's GIC interface number, not its number in the kernel, and the
+callout sets bit `16 + target` of `GICD_SGIR`, the target list. This is
+why each CPU records its interface in `gic_map` when it starts.
 
 ## Each CPU's interface
 

@@ -94,22 +94,75 @@ lists all of them.
 
 ## The debug console
 
-Startup prints on a UART the board chooses: its messages with `-v`, and
-its crash reports. The board provides the device as a `DebugDevice`
-(Listing 4.6), a single method that writes one byte, and selects it with
-`console::set()`.
+Startup prints on a UART: its messages with `-v`, and its crash reports.
+The kernel needs a debug channel too, and on most boards it is the same
+UART. QNX's startup library lets a board list the UARTs it can use, and
+picks one with the `-D` option; the library does the same.
 
-*Listing 4.6: The console device, `DebugDevice` (`src/console.rs`).*
+A board describes each UART as a `DebugDriver` (Listing 4.6): a name for
+`-D`, a default *port* (the registers' address, and the baud rate and
+input clock), startup's own driver as two functions, and the three
+callouts the kernel uses for the same device (Chapter 7).
+
+*Listing 4.6: A debug UART, `DebugDriver` (`src/console.rs`).*
 
 ```rust
-{{#include ../../src/console.rs:debug_device}}
+{{#include ../../src/console.rs:debug_driver}}
 ```
 
-On top of it, `kprintln!` formats with Rust's `core::fmt`, and `crash!`
-prints a message and stops the CPU. A panic does the same, so a failed
-`assert!` in startup ends with a message on the console rather than a
-silent hang.
+The board passes its list to `Startup::init_debug()` first thing in
+`main()` (Listing 4.7), which makes the first entry the console, so that
+everything after it can print. `-D` may then select another (Listing
+4.8): `-D name` picks the driver by name, and `-D name.options` changes
+its port too, with QNX's syntax, `base^shift.baud.clk` (any field may be
+left empty, and the base is hexadecimal).
 
-The kernel needs a debug channel too, but it cannot call startup's
-`DebugDevice`: startup is gone by then. The board gives the kernel its own
-copy of the code, as callouts (Chapter 7).
+*Listing 4.7: Choosing the console, `Startup::init_debug()` (`src/startup.rs`).*
+
+```rust
+{{#include ../../src/startup.rs:init_debug}}
+```
+
+*Listing 4.8: Selecting a driver and port for `-D` (`src/console.rs`).*
+
+```rust
+{{#include ../../src/console.rs:select}}
+```
+
+On top of the selected driver, `kprintln!` formats with Rust's
+`core::fmt`, and `crash!` prints a message and stops the CPU. A panic does
+the same, so a failed `assert!` in startup ends with a message on the
+console rather than a silent hang.
+
+The kernel cannot call startup's driver: startup is gone by then.
+`boot()` gives it the console's device instead: it maps the device's
+registers for the kernel and installs the driver's callouts in the
+system page, patched with that address (Chapter 13).
+
+## A generic UART: the PL011
+
+Most UARTs are the board's business, but Arm's PL011 is found on many
+SoCs, so the library has a driver for it (`src/pl011.rs`), which a board
+lists with `pl011::driver(name, port)`. When the port has a baud rate and
+a clock, startup programs the divisor (Listing 4.9); otherwise it uses the
+UART as the firmware left it.
+
+*Listing 4.9: Setting up a PL011, `pl011::init()` (`src/pl011.rs`).*
+
+```rust
+{{#include ../../src/pl011.rs:pl011_init}}
+```
+
+The divisor is the input clock over 16 times the baud rate, kept in 16.6
+fixed point: an integer part (`IBRD`) and 6 bits of fraction (`FBRD`). For
+115200 baud from 48 MHz it is 26 and 3/64.
+
+The PL011's callouts (Listing 4.10) are those of QNX's library: wait for
+room in the transmit FIFO and write, read a byte if the receive FIFO has
+one, and no break detection.
+
+*Listing 4.10: The PL011's callouts (`src/pl011.rs`).*
+
+```rust
+{{#include ../../src/pl011.rs:pl011_callouts}}
+```

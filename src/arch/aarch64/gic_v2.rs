@@ -111,8 +111,9 @@ crate::callout!(pub static CONFIG_PPI, "oscraft_gic_v2_config_ppi", patches = 0,
     "ret",
 );
 
-// send_ipi(syspage, cpu, cmd, &ipicmds[cpu]): record the command and, if
-// none was pending, send SGI 0 to the CPU.
+// send_ipi(syspage, target, cmd, &ipicmds[cpu]): record the command and,
+// if none was pending, send SGI 0 to the CPU. The kernel takes target from
+// gic_map: the CPU's GIC interface number.
 crate::callout!(pub static SEND_IPI, "oscraft_gic_v2_send_ipi", patches = 1,
     "mov     x5, #0", "movk x5, #0, lsl #16", "movk x5, #0, lsl #32", "movk x5, #0, lsl #48",
     "mrs     x0, daif",

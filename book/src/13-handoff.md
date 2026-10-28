@@ -21,26 +21,29 @@ The steps, in order:
    (`imagefs`), startup itself (`startup`) and the RAM the image takes
    beyond startup (`bootram`); and the device tree, if there is one
    (`fdt`), which is reserved now.
-3. **The bootstrap executables** are loaded and linked (Chapter 11).
-4. **The other CPUs** start and describe themselves (Chapter 12).
-5. **The system page's memory** is allocated, now that the number of
+3. **The kernel's debug channel**: unless the board has set the debug
+   callouts itself, the console's device gets them, with its registers
+   mapped for the kernel (Chapter 4).
+4. **The bootstrap executables** are loaded and linked (Chapter 11).
+5. **The other CPUs** start and describe themselves (Chapter 12).
+6. **The system page's memory** is allocated, now that the number of
    CPUs, the callouts and nearly all sections are known. The sections
    get room for the `sysram` entries still to come, and the kernel's spare
    room for asinfo entries (`ASINFO_SPARE`); then come the callouts' code
    and the cpupages, each part page aligned (Figure 6.1). The memory is
    mapped twice in the kernel's half: read-write for the kernel, read-only
    for processes; and the callouts' part again, read-only and executable.
-6. **`sysram`.** Mapping was the last allocation, so what is free now is
+7. **`sysram`.** Mapping was the last allocation, so what is free now is
    the kernel's (Chapter 5).
-7. **The system page is written**: `system_private` gets the mappings'
+8. **The system page is written**: `system_private` gets the mappings'
    addresses, the callouts are copied and patched, the references in the
    sections are replaced by their addresses, the sections are laid out and
    copied, and each cpupage gets its CPU's number.
-8. **The other CPUs enter `smp_spin`** (Chapter 12).
-9. **The boot CPU jumps** into the first bootstrap executable.
+9. **The other CPUs enter `smp_spin`** (Chapter 12).
+10. **The boot CPU jumps** into the first bootstrap executable.
 
 > [!WARNING]
-> Step 6 must come after the last allocation. Moving an allocation (a
+> Step 7 must come after the last allocation. Moving an allocation (a
 > mapping, a page table) after it gives the kernel memory that startup
 > uses.
 

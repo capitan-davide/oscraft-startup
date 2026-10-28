@@ -132,5 +132,5 @@ Appendix B lists every file.
 | `src/ram.rs` | Physical RAM bookkeeping |
 | `src/ifs.rs`, `src/elf.rs` | The image file system and loading the kernel |
 | `src/cmdline.rs`, `src/bootargs.rs` | The command line |
-| `src/console.rs` | Startup's debug output |
+| `src/console.rs`, `src/pl011.rs` | The debug UARTs, `-D`; a PL011 driver |
 | `src/qtime.rs`, `src/fdt.rs` | Timer arithmetic, a device tree reader |

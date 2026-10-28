@@ -68,12 +68,24 @@ that read it.
 {{#include ../../src/startup.rs:set_fdt}}
 ```
 
+Where the device tree is depends on the boot loader. With `-u reg`, its
+address is in `x0` at entry, where the Raspberry Pi's firmware puts it.
+With `-u arg`, the boot loader called startup like a C program,
+`main(argc, argv)`, with the address as the first argument: U-Boot's `go`
+command does this. Listing 5.3 reads both.
+
+*Listing 5.3: Where `-u` says the device tree is, `Startup::fdt_address()` (`src/startup.rs`).*
+
+```rust
+{{#include ../../src/startup.rs:fdt_address}}
+```
+
 ## Allocating
 
-Startup allocates with `Ram::alloc()` (Listing 5.3): the lowest address
+Startup allocates with `Ram::alloc()` (Listing 5.4): the lowest address
 that fits the size and alignment, outside the avoided ranges.
 
-*Listing 5.3: Allocating RAM, `Ram::alloc()` (`src/ram.rs`).*
+*Listing 5.4: Allocating RAM, `Ram::alloc()` (`src/ram.rs`).*
 
 ```rust
 {{#include ../../src/ram.rs:ram_alloc}}
@@ -94,13 +106,13 @@ kernel. QNX's startup library does the same.
 
 ## Adding RAM
 
-A board reports its RAM with `Startup::add_ram()` (Listing 5.4). The
+A board reports its RAM with `Startup::add_ram()` (Listing 5.5). The
 first call also builds the root of the `asinfo` tree, `memory`, which
 spans the CPU's whole physical address range, and its child `below4G`.
 Every call adds a `ram` entry, and reserves the image's RAM, which
 the startup header gives (`ram_paddr`, `ram_size`).
 
-*Listing 5.4: Adding RAM, `Startup::add_ram()` (`src/startup.rs`).*
+*Listing 5.5: Adding RAM, `Startup::add_ram()` (`src/startup.rs`).*
 
 ```rust
 {{#include ../../src/startup.rs:add_ram}}

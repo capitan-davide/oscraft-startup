@@ -11,7 +11,8 @@ Every source file of the crate, and the chapter that explains it.
 | `src/global.rs` | `Global<T>`, startup's lock-free globals | 4 |
 | `src/bootargs.rs` | The boot-arguments area mkifs fills in | 2 |
 | `src/cmdline.rs` | Parsing the boot arguments; `getopt()`-style options | 4 |
-| `src/console.rs` | The debug console, `kprintln!` | 4 |
+| `src/console.rs` | The debug UARTs, `-D`, `kprintln!` | 4 |
+| `src/pl011.rs` | Arm's PL011 UART as a debug device | 4 |
 | `src/ram.rs` | Range sets and RAM bookkeeping | 5 |
 | `src/syspage/mod.rs` | The system page builder, layout and writing | 6 |
 | `src/syspage/asinfo.rs` | The asinfo tree | 5, 6 |
