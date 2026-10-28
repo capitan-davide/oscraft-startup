@@ -37,6 +37,9 @@ global_asm!(
     "    add     x9, x9, :lo12:STARTUP_STACK",
     "    add     x9, x9, #{stack_size}",
     "    mov     sp, x9",
+    // __oscraft_startup_main(&BOOT_REGS), defined by entry!().
+    "    adrp    x0, BOOT_REGS",
+    "    add     x0, x0, :lo12:BOOT_REGS",
     "    bl      __oscraft_startup_main",
     "0:  wfe",
     "    b       0b",
