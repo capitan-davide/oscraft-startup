@@ -15,7 +15,8 @@ has no board code. The first board to use it is the Raspberry Pi 4, in
   headers, which the unit tests check the Rust types against.
 - `startup.ld`: the partial-link script for the startup program mkifs
   takes (see the book, chapter 2).
-- `docs/book/`: the library's book.
+- `docs/book/`: the library's book, published at
+  <https://capitan-davide.github.io/oscraft-startup/>.
 
 ## Using it
 
