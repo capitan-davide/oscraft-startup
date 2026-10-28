@@ -109,7 +109,7 @@ two.
 | Callouts | assembly routines with C patcher functions | assembly in `callout!`, patched by the library |
 | Architectures | AArch64, x86_64 | AArch64 |
 | Interrupt controllers | GICv2, GICv3 and others | GICv2 |
-| Compressed images | yes | no |
+| Compressed images | UCL (mkifs's default) | UCL |
 | Hypervisor support | yes | no: the kernel always runs at EL1 |
 
 The library is binary-compatible with the kernel, not with
@@ -130,7 +130,7 @@ Appendix B lists every file.
 | `src/syspage` | The system page builder and its sections |
 | `src/callout.rs` | The callout framework |
 | `src/ram.rs` | Physical RAM bookkeeping |
-| `src/ifs.rs`, `src/elf.rs` | The image file system and loading the kernel |
-| `src/cmdline.rs`, `src/bootargs.rs` | The command line |
+| `src/ifs.rs`, `src/elf.rs`, `src/decompress.rs` | The image file system (compressed or not) and loading the kernel |
+| `src/cmdline.rs`, `src/bootargs.rs`, `src/options.rs` | The command line, the common options |
 | `src/console.rs`, `src/pl011.rs` | The debug UARTs, `-D`; a PL011 driver |
 | `src/qtime.rs`, `src/fdt.rs` | Timer arithmetic, a device tree reader |

@@ -21,11 +21,17 @@ The steps, in order:
    (`imagefs`), startup itself (`startup`) and the RAM the image takes
    beyond startup (`bootram`); and the device tree, if there is one
    (`fdt`), which is reserved now.
-3. **The kernel's debug channel**: unless the board has set the debug
+3. **The kernel's debug channels**: unless the board has set the debug
    callouts itself, the console's device gets them, with its registers
-   mapped for the kernel (Chapter 4).
+   mapped for the kernel (Chapter 4); and `-K`'s device the second
+   channel's. Then the **options that waited** apply (Listing 13.2): more
+   RAM (`-M`), RAM kept from the kernel (`-r`, cleared unless asked not
+   to, and `-j`'s 8 bytes), clusters (`-c`), flags (`-A`, `-Z`), the
+   nanospin calibration (`-o`), and hwinfo is finished.
 4. **The bootstrap executables** are loaded and linked (Chapter 11).
-5. **The other CPUs** start and describe themselves (Chapter 12).
+5. **The other CPUs** start and describe themselves (Chapter 12); then
+   `-R`'s named RAM is set aside, from the top of RAM unless asked for
+   the bottom.
 6. **The system page's memory** is allocated, now that the number of
    CPUs, the callouts and nearly all sections are known. The sections
    get room for the `sysram` entries still to come, and the kernel's spare
@@ -38,7 +44,8 @@ The steps, in order:
 8. **The system page is written**: `system_private` gets the mappings'
    addresses, the callouts are copied and patched, the references in the
    sections are replaced by their addresses, the sections are laid out and
-   copied, and each cpupage gets its CPU's number.
+   copied, and each cpupage gets its CPU's number. With `-j`, the system
+   page's physical address is written where a JTAG debugger looks for it.
 9. **The other CPUs enter `smp_spin`** (Chapter 12).
 10. **The boot CPU jumps** into the first bootstrap executable.
 
@@ -47,15 +54,21 @@ The steps, in order:
 > mapping, a page table) after it gives the kernel memory that startup
 > uses.
 
+*Listing 13.2: The options applied at the end, `Startup::apply_options()` (`src/startup.rs`).*
+
+```rust
+{{#include ../../../src/startup.rs:apply_options}}
+```
+
 ## The jump
 
-The jump itself is `vstart` (Listing 13.2), which every CPU runs, with its
+The jump itself is `vstart` (Listing 13.3), which every CPU runs, with its
 own TTBR1. It invalidates the instruction cache and the TLBs, loads
 `MAIR_EL1`, `TCR_EL1` and both table bases, sets `CPACR_EL1` to 0 so that
 floating-point and SIMD instructions trap until the kernel has saved and
 set up their state, and turns the MMU and caches on.
 
-*Listing 13.2: Turning the MMU on and jumping, `vstart` (`src/arch/aarch64/handoff.rs`).*
+*Listing 13.3: Turning the MMU on and jumping, `vstart` (`src/arch/aarch64/handoff.rs`).*
 
 ```rust
 {{#include ../../../src/arch/aarch64/handoff.rs:vstart}}

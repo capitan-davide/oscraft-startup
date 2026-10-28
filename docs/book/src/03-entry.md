@@ -81,7 +81,11 @@ have a stack (Chapter 12).
 ```
 
 At **EL3**, `SCR_EL3` makes the lower levels non-secure and AArch64 and
-allows the `hvc` instruction; the CPU returns to EL2.
+allows the `hvc` instruction; the CPU returns to EL2. On a CPU with
+pointer authentication (`ID_AA64ISAR1_EL1`, `ID_AA64ISAR2_EL1` say), its
+`API` and `APK` bits also keep the pointer authentication instructions
+from trapping to EL3, and `HCR_EL2`'s same bits do so for EL2, so that
+the kernel can use them.
 
 At **EL2**, the code first turns the EL2 MMU and caches off: U-Boot
 leaves them on. Then it prepares EL1:
@@ -103,7 +107,9 @@ Then `eret` lands at EL1, where the code selects the EL1 stack pointer
 > [!WARNING]
 > `__oscraft_to_el1` returns to its caller at a lower exception level,
 > with the same `x30`. It must not use the stack, which may not exist,
-> and must leave `x0`-`x8` alone: callers keep values there.
+> and must leave `x0`-`x8` alone: callers keep values there. It uses
+> `x9`-`x13`, and keeps its return address in `x13` while it calls the
+> pointer authentication check.
 
 ## Clean caches
 

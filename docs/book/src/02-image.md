@@ -139,6 +139,65 @@ startup finds it. Chapter 4 shows how the library parses the entry.
 > stack; this library keeps the two apart, so a long command line cannot
 > collide with a deep call chain.
 
+## Compressed images
+
+With `+compress` in the build file, mkifs compresses the image file
+system (never startup, which must run first). The startup header's
+`flags1` then says how, and `imagefs_size` gives the size it decompresses
+to. The default algorithm, and the only one QNX's startup programs
+decompress, is UCL's NRV2B ("UCL8"); mkifs also knows LZO and zlib, but
+neither boots.
+
+NRV2B belongs to the LZ77 family, like most fast decompressors: the
+compressed stream is a mix of *literals*, bytes copied as they are, and
+*matches*, which say "copy `len` bytes from `off` bytes back in what was
+already decompressed". Repeated data costs a few bits per match, and a
+match may overlap the bytes it writes, which encodes a run of the same
+byte. NRV2B's particularity is its control stream: single bits, taken
+from bytes interleaved with the data, say whether a literal or a match
+comes next, and the match's offset and length are written as *gamma
+codes*, sequences of a data bit followed by a "more" bit, so that small
+numbers take few bits.
+
+mkifs cuts the image file system into blocks of at most 64 KB, compresses
+each on its own, and writes each as a 16-bit big-endian length followed by
+the compressed bytes; a length of 0 ends the image (Listing 2.6).
+
+*Listing 2.6: The blocks, `decompress()` (`src/decompress.rs`).*
+
+```rust
+{{#include ../../../src/decompress.rs:decompress_blocks}}
+```
+
+*Listing 2.7: NRV2B, `nrv2b()` (`src/decompress.rs`).*
+
+```rust
+{{#include ../../../src/decompress.rs:nrv2b}}
+```
+
+The bit buffer `bb` holds the current control byte shifted left, with a 1
+behind its last bit: when the byte's bits are used up, the 1 has reached
+bit 8 and the low bits are 0, and the next byte is read. An offset of 2
+means "the same offset as the last match"; an offset field of all ones
+ends the block. Every read and write is checked, so a corrupt image stops
+startup with a message instead of overwriting memory.
+
+The image file system must end up right after startup, where the
+kernel will serve it, but the compressed bytes are there to begin with.
+So `boot()` first copies them to free RAM out of the way, and decompresses
+from there (Listing 2.8). The startup header's `ram_size` includes the
+decompressed image file system, so the image's RAM, already reserved,
+has room for it.
+
+*Listing 2.8: Decompressing in place, `Startup::decompress_ifs()` (`src/startup.rs`).*
+
+```rust
+{{#include ../../../src/startup.rs:decompress_ifs}}
+```
+
+The copy goes where `Ram::find()` points: free RAM that is not allocated,
+since startup needs it only until the decompression ends (Chapter 5).
+
 ## The bootstrap executables
 
 Each bootstrap executable is an ELF file in the image file system. mkifs

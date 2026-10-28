@@ -83,10 +83,34 @@ for opt in s.options("W:") {
 }
 ```
 
-Listing 4.5 shows the common options the library acts on. Appendix A
-lists all of them.
+## The common options
 
-*Listing 4.5: The common options, `Startup::handle_common_option()` (`src/startup.rs`).*
+The common options are those of QNX's startup library (Appendix A lists
+them). Parsing only records what an option asks for, in `Options`
+(Listing 4.5), and `Options::apply()` (Listing 4.6) checks the syntax and
+the values; its parsing is plain Rust, unit-tested on the host.
+
+*Listing 4.5: What the options asked for, `Options` (`src/options.rs`).*
+
+```rust
+{{#include ../../../src/options.rs:options_struct}}
+```
+
+*Listing 4.6: Recording an option, `Options::apply()` (`src/options.rs`).*
+
+```rust
+{{#include ../../../src/options.rs:options_apply}}
+```
+
+`Startup::handle_common_option()` (Listing 4.7) records the option, and
+acts at once on the few that the board's next steps depend on: the
+verbosity and number of CPUs, the debug UART, the device tree, and the
+RAM `-r` and `-j` name, which must stay out of startup's allocations
+from the start. Everything else waits: the CPU options until the CPUs are
+described (Chapter 9), meltdown until the page tables are built
+(Chapter 10), and the rest until `boot()` (Chapter 13).
+
+*Listing 4.7: Applying an option, `Startup::handle_common_option()` (`src/startup.rs`).*
 
 ```rust
 {{#include ../../../src/startup.rs:common_options}}
@@ -99,31 +123,31 @@ The kernel needs a debug channel too, and on most boards it is the same
 UART. QNX's startup library lets a board list the UARTs it can use, and
 picks one with the `-D` option; the library does the same.
 
-A board describes each UART as a `DebugDriver` (Listing 4.6): a name for
+A board describes each UART as a `DebugDriver` (Listing 4.8): a name for
 `-D`, a default *port* (the registers' address, and the baud rate and
 input clock), startup's own driver as two functions, and the three
 callouts the kernel uses for the same device (Chapter 7).
 
-*Listing 4.6: A debug UART, `DebugDriver` (`src/console.rs`).*
+*Listing 4.8: A debug UART, `DebugDriver` (`src/console.rs`).*
 
 ```rust
 {{#include ../../../src/console.rs:debug_driver}}
 ```
 
 The board passes its list to `Startup::init_debug()` first thing in
-`main()` (Listing 4.7), which makes the first entry the console, so that
+`main()` (Listing 4.9), which makes the first entry the console, so that
 everything after it can print. `-D` may then select another (Listing
-4.8): `-D name` picks the driver by name, and `-D name.options` changes
+4.10): `-D name` picks the driver by name, and `-D name.options` changes
 its port too, with QNX's syntax, `base^shift.baud.clk` (any field may be
 left empty, and the base is hexadecimal).
 
-*Listing 4.7: Choosing the console, `Startup::init_debug()` (`src/startup.rs`).*
+*Listing 4.9: Choosing the console, `Startup::init_debug()` (`src/startup.rs`).*
 
 ```rust
 {{#include ../../../src/startup.rs:init_debug}}
 ```
 
-*Listing 4.8: Selecting a driver and port for `-D` (`src/console.rs`).*
+*Listing 4.10: Selecting a driver and port for `-D` (`src/console.rs`).*
 
 ```rust
 {{#include ../../../src/console.rs:select}}
@@ -144,10 +168,10 @@ system page, patched with that address (Chapter 13).
 Most UARTs are the board's business, but Arm's PL011 is found on many
 SoCs, so the library has a driver for it (`src/pl011.rs`), which a board
 lists with `pl011::driver(name, port)`. When the port has a baud rate and
-a clock, startup programs the divisor (Listing 4.9); otherwise it uses the
+a clock, startup programs the divisor (Listing 4.11); otherwise it uses the
 UART as the firmware left it.
 
-*Listing 4.9: Setting up a PL011, `pl011::init()` (`src/pl011.rs`).*
+*Listing 4.11: Setting up a PL011, `pl011::init()` (`src/pl011.rs`).*
 
 ```rust
 {{#include ../../../src/pl011.rs:pl011_init}}
@@ -157,11 +181,11 @@ The divisor is the input clock over 16 times the baud rate, kept in 16.6
 fixed point: an integer part (`IBRD`) and 6 bits of fraction (`FBRD`). For
 115200 baud from 48 MHz it is 26 and 3/64.
 
-The PL011's callouts (Listing 4.10) are those of QNX's library: wait for
+The PL011's callouts (Listing 4.12) are those of QNX's library: wait for
 room in the transmit FIFO and write, read a byte if the receive FIFO has
 one, and no break detection.
 
-*Listing 4.10: The PL011's callouts (`src/pl011.rs`).*
+*Listing 4.12: The PL011's callouts (`src/pl011.rs`).*
 
 ```rust
 {{#include ../../../src/pl011.rs:pl011_callouts}}

@@ -99,6 +99,12 @@ Allocating from the bottom keeps startup's allocations together, below
 the image on most boards, and leaves the rest of RAM in one piece for the
 kernel. QNX's startup library does the same.
 
+Two variants serve other needs. `Ram::find()` only says where `alloc()`
+would allocate: decompressing the image file system (Chapter 2) needs a
+place for a moment, which is free again afterwards. `Ram::find_top()`
+looks for the highest fit instead, for `-R`, which sets RAM aside under a
+name for a driver or a debugger, at the top of RAM as QNX's startup does.
+
 > [!WARNING]
 > `alloc()` is the only way startup gets memory, and nothing frees it. Any
 > allocation after `boot()` has turned the free set into `sysram` entries

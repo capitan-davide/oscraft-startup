@@ -34,6 +34,9 @@ and the tick's interrupt.
 {{#include ../../../src/abi/syspage.rs:qtime_entry}}
 ```
 
+The board's frequency can be replaced with `-f`: its third field is the
+timer's frequency (and its first the CPUs' speed, for cpuinfo).
+
 Besides the frequency, the kernel wants the counter's period as a decimal
 fraction: `timer_period * 10^timer_scale` seconds. Listing 9.2 works it
 out by long division of 1 by the frequency, one decimal digit at a time,
@@ -81,11 +84,25 @@ programs, which test them.
 The kernel needs both the FPU and the MMU on every CPU, so `CPU_FLAG_MMU`
 is always set, and the library expects an FPU.
 
-Listing 9.4 fills in a CPU's entry. It must run on that CPU, since ID
+Some flags depend on options, which `Startup::init_boot_cpu()` passes on
+as `Features` (Listing 9.4), the same for every CPU: SVE and pointer
+authentication are flagged only if asked for (`-e sve`, `-U`) and the CPU
+has them; `-E spectrev2` turns on the kernel's Spectre variant 2
+mitigation (the MMU-based one on the Cortex-A57 and A72, the others'
+otherwise), `-E ssbs` speculative store bypass safety; `-F` sets or clears
+flags by hand, after everything else.
+
+*Listing 9.4: The CPU options, `Features` (`src/arch/aarch64/cpu.rs`).*
+
+```rust
+{{#include ../../../src/arch/aarch64/cpu.rs:features}}
+```
+
+Listing 9.5 fills in a CPU's entry. It must run on that CPU, since ID
 registers can only be read locally: the boot CPU runs it early, each
 secondary CPU when it starts (Chapter 12).
 
-*Listing 9.4: Describing a CPU, `cpu::init_cpuinfo()` (`src/arch/aarch64/cpu.rs`).*
+*Listing 9.5: Describing a CPU, `cpu::init_cpuinfo()` (`src/arch/aarch64/cpu.rs`).*
 
 ```rust
 {{#include ../../../src/arch/aarch64/cpu.rs:init_cpuinfo}}
@@ -105,13 +122,17 @@ which kinds of cache each level has, and `CCSIDR_EL1`, for the level and
 kind `CSSELR_EL1` selects, gives the line size, ways and sets. CPUs with
 the same caches share entries.
 
-The callouts (Listing 9.5) take a virtual address, a number of lines,
+With `-X cachesnooped`, the data caches are flagged as kept coherent with
+DMA by the hardware, so the kernel skips their maintenance for DMA
+buffers.
+
+The callouts (Listing 9.6) take a virtual address, a number of lines,
 flags and the cache's entry. They do at most 32 lines per call, so that a
 large request does not keep interrupts off for long, and return how many
 they did; the instruction cache callout invalidates the whole cache for
 very large requests and returns 0.
 
-*Listing 9.5: The cache callouts (`src/arch/aarch64/cpu.rs`).*
+*Listing 9.6: The cache callouts (`src/arch/aarch64/cpu.rs`).*
 
 ```rust
 {{#include ../../../src/arch/aarch64/cpu.rs:cache_callouts}}
@@ -122,10 +143,10 @@ very large requests and returns 0.
 The AArch64 part of the system page keeps a copy of each CPU's ID
 registers, so that software can learn every CPU's features without running
 on it: 56 registers per CPU, the whole ID register space `S3_0_C0_C1_0` to
-`S3_0_C0_C7_7`. Listing 9.6 reads them all, with assembler loops; the
+`S3_0_C0_C7_7`. Listing 9.7 reads them all, with assembler loops; the
 unallocated encodings in that space read as zero.
 
-*Listing 9.6: Reading the ID registers (`src/arch/aarch64/cpu.rs`).*
+*Listing 9.7: Reading the ID registers (`src/arch/aarch64/cpu.rs`).*
 
 ```rust
 {{#include ../../../src/arch/aarch64/cpu.rs:read_idregs}}

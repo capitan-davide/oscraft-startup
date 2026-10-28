@@ -145,6 +145,13 @@ All of this happens with the MMU off: the tables are written at their
 physical addresses, and nothing uses them until each CPU turns its MMU on
 in the handoff (Chapter 13).
 
+With `-E meltdown`, every mapping is *non-global* (the `nG` bit): it
+belongs to an address space, ASID 0, rather than to all of them. The
+kernel then switches its own mappings out while user code runs, which
+closes the Meltdown side channel on CPUs that have it, at some cost in
+speed. It is off by default, as in QNX's startup, and the Cortex-A72 does
+not need it.
+
 > [!NOTE]
 > QNX's startup library uses the *contiguous* hint for runs of 16 aligned
 > pages, which lets the TLB cache them as one entry. The library maps

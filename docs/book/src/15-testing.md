@@ -47,11 +47,14 @@ change to the headers or to the list of checked fields.
 
 ## Logic on the host
 
-Most of the library is plain computation: parsing the command line,
-range arithmetic, laying out the system page, the asinfo tree, hwinfo
-encoding, ELF segment plans, timer arithmetic, patching instructions, the
-device tree reader. These parts do not touch hardware, and they are
-unit-tested on the host with `cargo test`. The modules that do touch
+Most of the library is plain computation: parsing the command line and
+the options, range arithmetic, laying out the system page, the asinfo
+tree, hwinfo encoding, ELF segment plans, timer arithmetic, patching
+instructions, the device tree reader, decompression. These parts do not touch hardware, and they are
+unit-tested on the host with `cargo test`. The decompressor's test uses
+real data: the last blocks of an image file system that mkifs compressed
+(`src/testdata/ucl.bin`), whose decompressed length and hash come from
+what the SDP's `dumpifs` decompressed them to. The modules that do touch
 hardware (`src/arch/aarch64`, `src/startup.rs`, `src/ifs.rs`) are only
 built for AArch64.
 

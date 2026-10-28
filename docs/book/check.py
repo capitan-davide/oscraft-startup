@@ -124,7 +124,11 @@ def main():
     for rel in tracked(ANCHOR_SCOPE):
         if rel.suffix == ".md":
             continue
-        for name, (start, _) in anchors_in((ROOT / rel).read_text()).items():
+        try:
+            text = (ROOT / rel).read_text()
+        except UnicodeDecodeError:
+            continue  # binary files (test data) hold no anchors
+        for name, (start, _) in anchors_in(text).items():
             if (rel, name) not in used:
                 errors.append(f"{rel}:{start}: anchor '{name}' is not used by the book")
 

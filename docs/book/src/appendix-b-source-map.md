@@ -11,6 +11,7 @@ Every source file of the crate, and the chapter that explains it.
 | `src/global.rs` | `Global<T>`, startup's lock-free globals | 4 |
 | `src/bootargs.rs` | The boot-arguments area mkifs fills in | 2 |
 | `src/cmdline.rs` | Parsing the boot arguments; `getopt()`-style options | 4 |
+| `src/options.rs` | The common options | 4 |
 | `src/console.rs` | The debug UARTs, `-D`, `kprintln!` | 4 |
 | `src/pl011.rs` | Arm's PL011 UART as a debug device | 4 |
 | `src/ram.rs` | Range sets and RAM bookkeeping | 5 |
@@ -22,6 +23,8 @@ Every source file of the crate, and the chapter that explains it.
 | `src/qtime.rs` | The qtime section and the timer period | 9 |
 | `src/elf.rs` | Planning the loading of ELF segments | 11 |
 | `src/ifs.rs` | The image file system; loading the bootstrap executables | 11 |
+| `src/decompress.rs` | Decompressing a UCL-compressed image file system | 2 |
+| `src/testdata/ucl.bin` | Blocks of an image file system mkifs compressed, for the decompressor's test | 15 |
 | `src/fdt.rs` | A flattened device tree reader | 14 |
 | `src/abi/mod.rs` | The ABI types' module | 2, 6 |
 | `src/abi/startup.rs` | The startup header and boot arguments | 2 |
