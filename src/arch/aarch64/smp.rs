@@ -8,7 +8,8 @@
 //! 1. *Start*: while startup builds the system page, the boot CPU releases
 //!    each secondary CPU in turn (how is the board's business: on the
 //!    Raspberry Pi, a spin table) and waits for it. The CPU moves to EL1,
-//!    describes itself in cpuinfo, sets up its GIC interface, and waits.
+//!    describes itself in cpuinfo, sets up its view of the interrupt
+//!    controller, and waits.
 //! 2. *Transfer*: once the system page is in place, the boot CPU lets the
 //!    CPUs go one at a time. Each turns its MMU on, enters `smp_spin`, and
 //!    clears `smp.pending`, which tells the boot CPU to let the next go.
@@ -17,7 +18,7 @@
 //! `smp_spin` cleans the line it writes so that the boot CPU sees it.
 
 use super::handoff::{MmuRegs, vstart};
-use super::{cache, cpu, exceptions, gic_v2};
+use super::{cache, cpu, exceptions, intr};
 use crate::abi::syspage::SyspageEntry;
 use crate::global::Global;
 use crate::syspage::{MAX_CPUS, Syspage};
@@ -136,7 +137,7 @@ extern "C" fn __oscraft_secondary_main(cpu: usize) -> ! {
     // system page is this CPU's to write until it clears CPU_STARTING.
     let sp = unsafe { &mut *(SYSPAGE.load(Ordering::Acquire) as *mut Syspage) };
     cpu::init_cpuinfo(sp, cpu, SPEED_MHZ.load(Ordering::Relaxed) as u32);
-    gic_v2::init_cpu(&mut sp.gic_map, cpu, sp.num_cpu);
+    intr::init_cpu(&mut sp.gic_map, cpu, sp.num_cpu);
     cpu::init_timer();
     CPU_STARTING.store(0, Ordering::Release);
 

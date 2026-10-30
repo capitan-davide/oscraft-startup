@@ -19,7 +19,8 @@ use crate::abi::syspage::{
 };
 use crate::arch::aarch64::handoff::{self, MmuRegs};
 use crate::arch::aarch64::mmu::{Mmu, PAGE_SIZE, Prot};
-use crate::arch::aarch64::{cpu, gic_v2, smp};
+use crate::arch::aarch64::intr::{self, CpuIntrInit};
+use crate::arch::aarch64::{cpu, smp};
 use crate::cmdline::{CmdLine, Getopt, Opt};
 use crate::console::{self, DebugDriver};
 use crate::global::Global;
@@ -302,6 +303,19 @@ impl Startup {
         mmu.map(ram, None, paddr, size, Prot::DEVICE)
     }
 
+    // ANCHOR: set_cpu_intr_init
+    /// Register the interrupt controller's per-CPU setup, which
+    /// [`Startup::init_boot_cpu`] runs on the boot CPU and each secondary
+    /// CPU runs as it starts. The library's controllers register their
+    /// own ([`gic_v2::init`] does); a board with another controller calls
+    /// this when it sets the controller up.
+    ///
+    /// [`gic_v2::init`]: crate::arch::aarch64::gic_v2::init
+    pub fn set_cpu_intr_init(&mut self, init: CpuIntrInit) {
+        intr::set_cpu_init(init);
+    }
+    // ANCHOR_END: set_cpu_intr_init
+
     /// Set up the generic timer as the system clock, with the tick on
     /// interrupt `intr` (27, the virtual timer's PPI, on most boards).
     pub fn init_qtime(&mut self, intr: i32) {
@@ -310,8 +324,8 @@ impl Startup {
         self.syspage.qtime = crate::qtime::qtime(freq, intr);
     }
 
-    /// Describe the boot CPU, running at `speed_mhz`, and set up its GIC
-    /// CPU interface.
+    /// Describe the boot CPU, running at `speed_mhz`, and set up its view
+    /// of the interrupt controller (see [`Startup::set_cpu_intr_init`]).
     pub fn init_boot_cpu(&mut self, speed_mhz: u32) {
         let o = &self.options;
         self.cpu_speed_mhz = o.cpu_freq.map_or(speed_mhz, |hz| (hz / 1_000_000) as u32);
@@ -325,7 +339,7 @@ impl Startup {
             flags_off: o.flags_off,
         });
         cpu::init_cpuinfo(&mut self.syspage, 0, self.cpu_speed_mhz);
-        gic_v2::init_cpu(&mut self.syspage.gic_map, 0, self.syspage.num_cpu);
+        intr::init_cpu(&mut self.syspage.gic_map, 0, self.syspage.num_cpu);
     }
 
     // ANCHOR: boot

@@ -6,6 +6,7 @@ pub mod entry;
 pub mod exceptions;
 pub mod gic_v2;
 pub mod handoff;
+pub mod intr;
 pub mod mmu;
 pub mod smp;
 

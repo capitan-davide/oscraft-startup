@@ -147,8 +147,8 @@ fn cpu_interface(gicd: u64, num_cpu: u16) -> u32 {
 
 // ANCHOR: gic_init
 /// Set up the GIC whose distributor is at `gicd` and CPU interfaces at
-/// `gicc`, describe it in the system page, and set up the boot CPU's
-/// interface. All shared interrupts go to the boot CPU, disabled, level
+/// `gicc`, describe it in the system page, and register [`init_cpu`] as
+/// each CPU's part of the setup. All shared interrupts go to the boot CPU, disabled, level
 /// triggered, at the same priority; the kernel takes it from there.
 pub fn init(s: &mut Startup, gicd: u64, gicc: u64) {
     let mem = s.syspage.as_find("memory").unwrap_or(AS_NULL_OFF);
@@ -218,6 +218,7 @@ pub fn init(s: &mut Startup, gicd: u64, gicc: u64) {
     sp.intrinfo.push(ppi);
     sp.intrinfo.push(spi);
     sp.smp.send_ipi = sp.callout(&SEND_IPI, &[gicd_v]);
+    s.set_cpu_intr_init(init_cpu);
 }
 // ANCHOR_END: gic_init
 
