@@ -102,6 +102,9 @@ QNX's, and the build file names it in its bootstrap section.
 
 How a board releases its CPUs is entirely its `release()` function: a
 board whose firmware implements PSCI makes its `CPU_ON` call there. An
-interrupt controller is another matter: the library has the GICv2 only,
-and a board with a GICv3 needs a GICv3 module first, next to
-`src/arch/aarch64/gic_v2.rs`.
+interrupt controller is the board's too when it is not a GICv2, the one
+the library has: the board describes it with `intrinfo` entries and
+callouts, sets `smp.send_ipi`, and registers each CPU's part of the setup
+with `Startup::set_cpu_intr_init()` before `init_boot_cpu()` (Chapter 8).
+The Raspberry Pi 3, which has no GIC, does this. A GICv3 is better added
+to the library, next to `src/arch/aarch64/gic_v2.rs`.

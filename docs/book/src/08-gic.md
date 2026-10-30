@@ -142,3 +142,23 @@ adds such a controller as one more `intrinfo` entry with its own callouts,
 and `cascade_vector` set to the SPI it signals through. The library
 provides the GICv2 only; GICv3, with its per-CPU redistributors and
 system-register CPU interface, would need its own module.
+
+A board may also have no GIC at all: the Raspberry Pi 3's BCM2837 has a
+controller of its own for each core's timers and mailboxes, and the
+older BCM2835 controller for the devices. Its board crate describes them
+with `intrinfo` entries and callouts of its own, and IPIs with its own
+`send_ipi`, as `init()` does here. The kernel needs nothing more: without
+an interrupt controller module (`[module=gicv2]` in the build file), it
+runs the callouts, and it finds the IPI's vector through the `config`
+callout.
+
+What the library cannot know is each CPU's part of the setup, which
+`init_boot_cpu()` and every secondary CPU run. The controller registers
+it with `Startup::set_cpu_intr_init()` (Listing 8.5); `init()` registers
+`init_cpu()` above, and a board without a GIC registers its own.
+
+*Listing 8.5: Each CPU's part of the setup, `Startup::set_cpu_intr_init()` (`src/startup.rs`).*
+
+```rust
+{{#include ../../../src/startup.rs:set_cpu_intr_init}}
+```

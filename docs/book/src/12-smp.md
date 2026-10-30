@@ -41,7 +41,8 @@ Figure 12.1 shows the protocol.
 **Start.** While the system page is still being built, the boot CPU
 releases the CPUs one at a time and waits for each. A released CPU moves
 to EL1 and describes itself: only it can read its own ID registers and
-set up its own GIC interface. It then signals that it is done, and waits.
+set up its own view of the interrupt controller (with a GIC, its CPU
+interface; Chapter 8). It then signals that it is done, and waits.
 Because the CPUs go one at a time, each can write its parts of the system
 page without locks.
 

@@ -39,6 +39,7 @@ Every source file of the crate, and the chapter that explains it.
 | `src/arch/aarch64/exceptions.rs` | Startup's exception vectors | 3 |
 | `src/arch/aarch64/cpu.rs` | cpuinfo, cacheattr, ID registers, the timer | 9 |
 | `src/arch/aarch64/gic_v2.rs` | The GICv2 and its callouts | 8 |
+| `src/arch/aarch64/intr.rs` | Each CPU's part of the interrupt controller's setup | 8 |
 | `src/arch/aarch64/mmu.rs` | The kernel's page tables | 10 |
 | `src/arch/aarch64/smp.rs` | Starting the secondary CPUs, `smp_spin` | 12 |
 | `src/arch/aarch64/handoff.rs` | Turning the MMU on and jumping | 13 |
