@@ -17,40 +17,40 @@
   <!-- startup text -->
   <text class="b" x="20" y="24">1. In startup's text</text>
   <rect class="k" x="20" y="34" width="230" height="150" rx="4"/>
-  <text class="m" x="32" y="56">movz x6, #0</text>
-  <text class="m" x="32" y="72">movk x6, #0, lsl #16</text>
-  <text class="m" x="32" y="88">movk x6, #0, lsl #32</text>
-  <text class="m" x="32" y="104">movk x6, #0, lsl #48</text>
-  <text class="m" x="32" y="124">ldr  w0, [x6, #0xc]</text>
+  <text class="m" x="32" y="56">movz x7, #0</text>
+  <text class="m" x="32" y="72">movk x7, #0, lsl #16</text>
+  <text class="m" x="32" y="88">movk x7, #0, lsl #32</text>
+  <text class="m" x="32" y="104">movk x7, #0, lsl #48</text>
+  <text class="m" x="32" y="124">0: ldr w2, [x7, #STATUS]</text>
   <text class="m" x="32" y="140">...</text>
-  <text class="s" x="32" y="160">a callout: code between two symbols,</text>
-  <text class="s" x="32" y="174">four placeholders for one patch value</text>
+  <text class="s" x="32" y="160">DISPLAY_CHAR: four placeholders</text>
+  <text class="s" x="32" y="174">for one patch value</text>
   <!-- section ref -->
   <text class="b" x="20" y="214">2. In a section, until output</text>
   <rect class="y" x="20" y="224" width="230" height="56" rx="4"/>
-  <text class="m" x="32" y="246">intrinfo[0].id.rtn =</text>
-  <text class="m" x="32" y="264">  0x0ca11007_00000000 | 0</text>
+  <text class="m" x="32" y="246">callout.debug[0].display_char</text>
+  <text class="m" x="32" y="264">  = 0x0ca11007_00000000 | 0</text>
   <text class="s" x="32" y="302">a tagged reference to entry 0 of the</text>
   <text class="s" x="32" y="316">callout table, which keeps the patch</text>
-  <text class="s" x="32" y="330">value, the GICC's virtual address:</text>
+  <text class="s" x="32" y="330">value, the UART's virtual address:</text>
   <text class="m" x="32" y="348"><tspan class="pv">ffffff80_40001000</tspan></text>
   <!-- system page copy -->
   <text class="b" x="320" y="24">3. Copied to the system page, patched</text>
   <rect class="k" x="320" y="34" width="250" height="150" rx="4"/>
-  <text class="m" x="332" y="56">movz x6, #<tspan class="pv">0x1000</tspan></text>
-  <text class="m" x="332" y="72">movk x6, #<tspan class="pv">0x4000</tspan>, lsl #16</text>
-  <text class="m" x="332" y="88">movk x6, #<tspan class="pv">0xff80</tspan>, lsl #32</text>
-  <text class="m" x="332" y="104">movk x6, #<tspan class="pv">0xffff</tspan>, lsl #48</text>
-  <text class="m" x="332" y="124">ldr  w0, [x6, #0xc]   // GICC_IAR</text>
+  <text class="m" x="332" y="56">movz x7, #<tspan class="pv">0x1000</tspan></text>
+  <text class="m" x="332" y="72">movk x7, #<tspan class="pv">0x4000</tspan>, lsl #16</text>
+  <text class="m" x="332" y="88">movk x7, #<tspan class="pv">0xff80</tspan>, lsl #32</text>
+  <text class="m" x="332" y="104">movk x7, #<tspan class="pv">0xffff</tspan>, lsl #48</text>
+  <text class="m" x="332" y="124">0: ldr w2, [x7, #STATUS]</text>
   <text class="m" x="332" y="140">...</text>
-  <text class="s" x="332" y="160">x6: the patch value, the GICC's address</text>
+  <text class="s" x="332" y="160">x7: the patch value, the UART's address</text>
   <text class="s" x="332" y="174">this copy is at <tspan class="m ca">ffffff80_40207000</tspan></text>
   <path class="ln" d="M250,100 L318,100" marker-end="url(#a)"/>
   <text class="t s" x="284" y="92">copy</text>
   <!-- section resolved -->
   <rect class="y" x="320" y="224" width="250" height="56" rx="4"/>
-  <text class="m" x="332" y="246">intrinfo[0].id.rtn =</text>
-  <text class="m" x="332" y="264">  <tspan class="ca">ffffff80_40207000</tspan></text>
+  <text class="m" x="332" y="246">callout.debug[0].display_char</text>
+  <text class="m" x="332" y="264">  = <tspan class="ca">ffffff80_40207000</tspan></text>
   <text class="s" x="332" y="302">the reference, replaced by the copy's</text>
   <text class="s" x="332" y="316">address (not the patch value)</text>
   <path class="ln" d="M250,254 L318,254" marker-end="url(#a)"/>
@@ -59,10 +59,10 @@
   <!-- kernel -->
   <text class="b" x="630" y="24">4. The kernel calls it</text>
   <rect class="u" x="630" y="34" width="170" height="150" rx="4"/>
-  <text class="t" x="715" y="90">procnto's interrupt</text>
-  <text class="t" x="715" y="106">entry code</text>
-  <text class="t s" x="715" y="130">copies id/eoi inline;</text>
-  <text class="t s" x="715" y="144">calls the others</text>
+  <text class="t" x="715" y="84">procnto's debug</text>
+  <text class="t" x="715" y="100">output</text>
+  <text class="t s m" x="715" y="126">display_char(syspage, c)</text>
+  <text class="t s" x="715" y="142">for each character</text>
   <path class="ln" d="M628,110 L572,110" marker-end="url(#a)"/>
   <path class="ln dash" d="M715,186 C715,254 640,254 572,254" marker-end="url(#a)"/>
   <text class="s" x="650" y="276">finds it through</text>

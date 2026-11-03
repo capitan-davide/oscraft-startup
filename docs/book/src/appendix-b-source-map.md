@@ -7,7 +7,7 @@ Every source file of the crate, and the chapter that explains it.
 | File | Contents | Chapter |
 |---|---|---|
 | `src/lib.rs` | The crate root: `entry!`, `crash!`, the panic handler | 4 |
-| `src/startup.rs` | The `Startup` context and its operations, `boot()` | 4, 5, 13 |
+| `src/startup.rs` | The `Startup` context and its operations, `boot()` | 4, 5, 7, 13 |
 | `src/global.rs` | `Global<T>`, startup's lock-free globals | 4 |
 | `src/bootargs.rs` | The boot-arguments area mkifs fills in | 2 |
 | `src/cmdline.rs` | Parsing the boot arguments; `getopt()`-style options | 4 |

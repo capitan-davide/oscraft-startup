@@ -534,6 +534,7 @@ impl Startup {
 }
 
 impl Startup {
+    // ANCHOR: install_debug
     /// Give the kernel `driver`'s device at `port` as debug channel
     /// `channel`: map its registers, and install its callouts.
     fn install_debug(
@@ -558,6 +559,7 @@ impl Startup {
         debug.poll_key = p;
         debug.break_detect = b;
     }
+    // ANCHOR_END: install_debug
 
     // ANCHOR: apply_options
     /// Apply the options that wait for the end of the boot: more RAM, RAM

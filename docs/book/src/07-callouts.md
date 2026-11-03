@@ -127,13 +127,21 @@ callout!(pub static DISPLAY_CHAR, "my_display_char", patches = 1,
 );
 ```
 
+The address is not in the code: the four `#0`s are its placeholders.
+Startup learns the address only at boot, when it maps the UART for the
+kernel; it records the callout with that address as its patch value, and
+patching writes the address into the callout's copy, 16 bits per
+instruction. When the kernel calls the copy, `x7` holds the address of
+the UART's registers. The rest of this chapter follows this callout to
+the kernel.
+
 ## From startup's text to the system page
 
-Figure 7.1 shows a callout's way into the kernel.
+Figure 7.1 shows the debug callout's way into the kernel.
 
 ![A callout's way into the kernel](images/ch07-callout-patch.svg)
 
-*Figure 7.1: A callout, from startup's text to the kernel.*
+*Figure 7.1: The `display_char` callout, from startup's text to the kernel.*
 
 While startup builds the system page, the callouts' final addresses are
 not known: the system page has no memory yet. So a section that needs a
@@ -166,4 +174,14 @@ size, which the kernel needs.
 
 Mapping the device registers is the board's or the library's job, before
 the callout is recorded: `Startup::map_device()` maps a register block for
-the kernel and returns the virtual address to patch in (Chapter 10).
+the kernel and returns the virtual address to patch in (Chapter 10). For
+the debug UART, the library does both itself (Listing 7.6): it maps the
+UART's registers, records the driver's three debug callouts with that
+address as their patch value, and stores the references in
+`callout.debug[]`.
+
+*Listing 7.6: Installing a debug channel's callouts, `Startup::install_debug()` (`src/startup.rs`).*
+
+```rust
+{{#include ../../../src/startup.rs:install_debug}}
+```
