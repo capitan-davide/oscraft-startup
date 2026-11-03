@@ -76,9 +76,10 @@ movk x6, #0, lsl #32      // bits 32-47
 movk x6, #0, lsl #48      // bits 48-63
 ```
 
-QNX's own callouts write the first instruction as `mov x6, #0xabcd`;
-`mov` with a 16-bit immediate is an alias the assembler encodes as
-`movz`, so the words are the same. The library spells out `movz` to match
+QNX's own callouts write the first instruction as a `mov` with a
+placeholder value (`mov x7, #0xabcd` in its PL011 callouts); `mov` with a
+16-bit immediate is an alias the assembler encodes as `movz`, so the
+words are the same. The library spells out `movz` to match
 what patching checks for.
 
 Each instruction keeps its 16-bit immediate in bits 5-20. Patching
