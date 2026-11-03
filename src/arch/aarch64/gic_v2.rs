@@ -53,7 +53,7 @@ static GIC: Global<Option<Gic>> = Global::new(None);
 // return the controller-relative interrupt in x19, -1 if none; the IAR
 // value travels in x24 from the PPI id to the SPI id and to eoi.
 crate::callout!(pub static ID_PPI, "oscraft_gic_v2_id_ppi", patches = 1,
-    "mov     x6, #0", "movk x6, #0, lsl #16", "movk x6, #0, lsl #32", "movk x6, #0, lsl #48",
+    "movz    x6, #0", "movk x6, #0, lsl #16", "movk x6, #0, lsl #32", "movk x6, #0, lsl #48",
     "ldr     w0, [x6, #0xc]",       // GICC_IAR
     "and     w19, w0, #0x3ff",
     "cmp     w19, #31",
@@ -74,7 +74,7 @@ crate::callout!(pub static ID_SPI, "oscraft_gic_v2_id_spi", patches = 0,
 );
 
 crate::callout!(pub static EOI, "oscraft_gic_v2_eoi", patches = 1,
-    "mov     x6, #0", "movk x6, #0, lsl #16", "movk x6, #0, lsl #32", "movk x6, #0, lsl #48",
+    "movz    x6, #0", "movk x6, #0, lsl #16", "movk x6, #0, lsl #32", "movk x6, #0, lsl #48",
     "cbz     w24, 0f",              // the IPI was ended in id
     "str     w24, [x6, #0x10]",     // GICC_EOIR
     "0:",
@@ -85,7 +85,7 @@ crate::callout!(pub static EOI, "oscraft_gic_v2_eoi", patches = 1,
 macro_rules! enable_callout {
     ($name:ident, $sym:literal, $reg:literal, $add:literal) => {
         crate::callout!(pub static $name, $sym, patches = 1,
-            "mov     x5, #0", "movk x5, #0, lsl #16", "movk x5, #0, lsl #32", "movk x5, #0, lsl #48",
+            "movz    x5, #0", "movk x5, #0, lsl #16", "movk x5, #0, lsl #32", "movk x5, #0, lsl #48",
             concat!("add     x5, x5, #", $reg),
             concat!("add     w1, w1, #", $add),
             "and     w0, w1, #0x1f",
@@ -115,7 +115,7 @@ crate::callout!(pub static CONFIG_PPI, "oscraft_gic_v2_config_ppi", patches = 0,
 // if none was pending, send SGI 0 to the CPU. The kernel takes target from
 // gic_map: the CPU's GIC interface number.
 crate::callout!(pub static SEND_IPI, "oscraft_gic_v2_send_ipi", patches = 1,
-    "mov     x5, #0", "movk x5, #0, lsl #16", "movk x5, #0, lsl #32", "movk x5, #0, lsl #48",
+    "movz    x5, #0", "movk x5, #0, lsl #16", "movk x5, #0, lsl #32", "movk x5, #0, lsl #48",
     "mrs     x0, daif",
     "msr     daifset, #2",
     "0: ldxr w7, [x3]",

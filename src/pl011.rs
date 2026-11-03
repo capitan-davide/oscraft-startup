@@ -56,7 +56,7 @@ pub fn putc(port: &DebugPort, byte: u8) {
 // display_char(syspage, c), poll_key(syspage), break_detect(syspage),
 // patched with the registers' virtual address.
 crate::callout!(pub static DISPLAY_CHAR, "oscraft_pl011_display_char", patches = 1,
-    "mov     x7, #0", "movk x7, #0, lsl #16", "movk x7, #0, lsl #32", "movk x7, #0, lsl #48",
+    "movz    x7, #0", "movk x7, #0, lsl #16", "movk x7, #0, lsl #32", "movk x7, #0, lsl #48",
     "0: ldr  w2, [x7, #0x18]",      // FR: transmit FIFO full?
     "tst     w2, #0x20",
     "b.ne    0b",
@@ -66,7 +66,7 @@ crate::callout!(pub static DISPLAY_CHAR, "oscraft_pl011_display_char", patches =
 );
 
 crate::callout!(pub static POLL_KEY, "oscraft_pl011_poll_key", patches = 1,
-    "mov     x7, #0", "movk x7, #0, lsl #16", "movk x7, #0, lsl #32", "movk x7, #0, lsl #48",
+    "movz    x7, #0", "movk x7, #0, lsl #16", "movk x7, #0, lsl #32", "movk x7, #0, lsl #48",
     "ldr     w1, [x7, #0x18]",      // FR: receive FIFO empty?
     "tst     w1, #0x10",
     "b.ne    0f",

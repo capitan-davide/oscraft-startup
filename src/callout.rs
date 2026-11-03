@@ -58,7 +58,7 @@ impl Callout {
 ///
 /// ```ignore
 /// callout!(pub static MY_CALLOUT, "my_callout", patches = 1,
-///     "mov  x5, #0", "movk x5, #0, lsl #16", "movk x5, #0, lsl #32",
+///     "movz x5, #0", "movk x5, #0, lsl #16", "movk x5, #0, lsl #32",
 ///     "movk x5, #0, lsl #48",
 ///     "ret",
 /// );
@@ -228,7 +228,7 @@ mod tests {
 
     #[test]
     fn patches_a_mov64_sequence() {
-        // mov x5, #0; movk x5, #0, lsl #16; ... lsl #32; ... lsl #48
+        // movz x5, #0; movk x5, #0, lsl #16; ... lsl #32; ... lsl #48
         let mut code = [0u8; 16];
         for (k, op) in [0xd280_0005u32, 0xf2a0_0005, 0xf2c0_0005, 0xf2e0_0005]
             .iter()

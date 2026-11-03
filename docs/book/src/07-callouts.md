@@ -70,11 +70,16 @@ takes four instructions on AArch64: `movz` loads 16 bits and clears the
 rest, and three `movk` keep the rest and insert 16 more bits each:
 
 ```text
-mov  x6, #0               // bits 0-15
+movz x6, #0               // bits 0-15
 movk x6, #0, lsl #16      // bits 16-31
 movk x6, #0, lsl #32      // bits 32-47
 movk x6, #0, lsl #48      // bits 48-63
 ```
+
+QNX's own callouts write the first instruction as `mov x6, #0xabcd`;
+`mov` with a 16-bit immediate is an alias the assembler encodes as
+`movz`, so the words are the same. The library spells out `movz` to match
+what patching checks for.
 
 Each instruction keeps its 16-bit immediate in bits 5-20. Patching
 (Listing 7.2) replaces those bits with the value's four slices. It first
@@ -113,7 +118,7 @@ virtual address:
 
 ```rust
 callout!(pub static DISPLAY_CHAR, "my_display_char", patches = 1,
-    "mov     x7, #0", "movk x7, #0, lsl #16",
+    "movz    x7, #0", "movk x7, #0, lsl #16",
     "movk    x7, #0, lsl #32", "movk x7, #0, lsl #48",
     "0: ldr  w2, [x7, #STATUS]",      // wait for room
     "tbz     w2, #TX_READY, 0b",
