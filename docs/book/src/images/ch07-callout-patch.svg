@@ -33,12 +33,12 @@
   <text class="s" x="32" y="302">a tagged reference to entry 0 of the</text>
   <text class="s" x="32" y="316">callout table, which keeps the patch</text>
   <text class="s" x="32" y="330">value, the UART's virtual address:</text>
-  <text class="m" x="32" y="348"><tspan class="pv">ffffff80_40001000</tspan></text>
+  <text class="m" x="32" y="348"><tspan class="pv">ffffff80_40213000</tspan></text>
   <!-- system page copy -->
   <text class="b" x="320" y="24">3. Copied to the system page, patched</text>
   <rect class="k" x="320" y="34" width="250" height="150" rx="4"/>
-  <text class="m" x="332" y="56">movz x7, #<tspan class="pv">0x1000</tspan></text>
-  <text class="m" x="332" y="72">movk x7, #<tspan class="pv">0x4000</tspan>, lsl #16</text>
+  <text class="m" x="332" y="56">movz x7, #<tspan class="pv">0x3000</tspan></text>
+  <text class="m" x="332" y="72">movk x7, #<tspan class="pv">0x4021</tspan>, lsl #16</text>
   <text class="m" x="332" y="88">movk x7, #<tspan class="pv">0xff80</tspan>, lsl #32</text>
   <text class="m" x="332" y="104">movk x7, #<tspan class="pv">0xffff</tspan>, lsl #48</text>
   <text class="m" x="332" y="124">0: ldr w2, [x7, #STATUS]</text>

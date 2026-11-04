@@ -3,6 +3,9 @@
 **AP (application processor)**: a CPU other than the boot CPU; also
 called a secondary CPU.
 
+**ASID**: an Address Space Identifier, which tags TLB entries with the
+address space they belong to.
+
 **asinfo**: the system page section that describes the physical address
 space as a tree of named ranges.
 
@@ -52,10 +55,19 @@ the board for the kernel.
 **Startup header**: the structure mkifs puts in front of startup, which
 describes the image.
 
+**Recursive entry**: a translation table entry that points back at its
+own table, so that the tables appear as data in the address space.
+
 **sysram**: asinfo entries for the RAM the kernel may use.
 
 **System page**: the block of memory where startup describes the board
 to the kernel.
+
+**TLB**: the Translation Lookaside Buffer, the CPU's cache of recent
+address translations.
+
+**Translation table**: the in-memory tree that the MMU walks to translate
+a virtual address to a physical one; also called a page table.
 
 **TTBR0, TTBR1**: the two translation table base registers, for the
 lower and upper halves of the address space.
