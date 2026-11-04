@@ -34,9 +34,30 @@ read:
 
 The code is at 0x99000 in RAM, the data at 0x13c000; startup maps those
 pages at the virtual addresses, and the kernel runs from the image, data
-included. Only a segment with a `.bss` needs new RAM: the page where its
-file bytes end is copied there (the next file in the image starts right
-after them), and the rest of the new RAM is zero.
+included. Figure 11.1 shows the same headers as a picture: `Offset` says
+where a segment is in the file, `PhysAddr` where it is in RAM, and
+`VirtAddr` where the kernel will see it. The file starts at 0x98000 in
+RAM, so each `PhysAddr` is its `Offset` plus 0x98000.
+
+![An ELF file's segments, in the file, in RAM and in the address space](images/ch11-segments.svg)
+
+*Figure 11.1: The kernel's two segments, with the Raspberry Pi 4 addresses above. Heights are not to scale.*
+
+The program headers themselves are not part of any segment here: startup
+reads them, but the kernel never sees them. Mappings cover whole pages,
+which is why the code's 0xa25f8 bytes become 0xa3000 of address space.
+
+Only a segment with a `.bss` needs new RAM. Its pages cannot all stay in
+the image, for two reasons: the image holds no bytes for the `.bss`, and
+the page where the file bytes end also holds the start of the next file
+in the image, which the `.bss` must not overwrite. So that page is copied
+to new RAM, and the rest of the new RAM is zero. Figure 11.2 shows a
+segment of 0x1800 file bytes and 0x4800 bytes in memory, the case that
+the library's unit test uses.
+
+![A segment with a .bss: one page in place, the rest in new RAM](images/ch11-bss.svg)
+
+*Figure 11.2: A segment with a `.bss` takes two steps: whole pages stay in the image, the rest goes to new RAM.*
 
 The library first works out these steps from a program header (Listing
 11.1), with no side effects, which makes the logic testable on the host.
@@ -79,6 +100,12 @@ executable carries two small structures (Listing 11.4):
 - an `ifs_bootstrap_data`, where startup writes the next executable's
   entry point (`next_entry`), and which points to the executable's own
   command line.
+
+Figure 11.3 shows how these link two executables.
+
+![The bootstrap structures that chain the executables](images/ch11-chain.svg)
+
+*Figure 11.3: Chaining: the head leads to the data, and `next_entry` to the next executable.*
 
 *Listing 11.4: The bootstrap structures (`src/abi/image.rs`).*
 
