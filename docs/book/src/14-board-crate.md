@@ -17,7 +17,7 @@ crate does for each, as an example.
 | Its options | `Startup::options()` | `-W` for the watchdog |
 | The number of CPUs, and how to release one | `Startup::init_smp()` | 4 cores, the firmware's spin table |
 | The RAM, and what is not free | `Startup::add_ram()`, `ram.reserve()`, `syspage.as_add_containing()` | Size from the board revision; the GPU's RAM; the firmware's page |
-| The interrupt controller | `gic_v2::init()` | The GIC-400's addresses |
+| The interrupt controller | `gic_v2::init()`, or the board's own setup with `Startup::set_cpu_intr_init()` | `gic_v2::init()`, with the GIC-400's addresses |
 | The tick's interrupt | `Startup::init_qtime()` | PPI 27 |
 | The CPUs' speed | `Startup::init_boot_cpu()` | From the firmware's mailbox |
 | Reboot | a callout in `callout.reboot` | The watchdog, set to expire at once |
@@ -46,9 +46,9 @@ fn main(s: &mut Startup) -> ! {
     s.init_smp(NUM_CPUS, release_cpu);        // 3. before init_mmu()
     s.add_ram(RAM_BASE, RAM_SIZE);            // 4. RAM, before allocating
     s.init_mmu();                             // 5. first allocation
-    gic_v2::init(s, GICD, GICC);              // 6. maps registers
+    gic_v2::init(s, GICD, GICC);              // 6. or the board's own setup
     s.init_qtime(27);
-    s.init_boot_cpu(CPU_MHZ);                 // 7. after the GIC
+    s.init_boot_cpu(CPU_MHZ);                 // 7. after the controller
     let sp = &mut s.syspage;
     hwinfo::add_default(&mut sp.hwinfo, &mut sp.strings);
     sp.hwinfo.finish();
@@ -65,9 +65,11 @@ The constraints behind it:
 - every `add_ram()`, `ram.reserve()` and `ram.avoid()` comes before the
   first allocation, `init_mmu()`, or an allocation may land on memory that
   is not free;
-- `gic_v2::init()` and `map_device()` need the page tables;
-- `init_boot_cpu()` needs the GIC, since it sets up the boot CPU's
-  interface;
+- the interrupt controller's setup and `map_device()` need the page
+  tables;
+- `init_boot_cpu()` runs the controller's per-CPU setup, so it comes after
+  the setup that registers it, or startup stops with "no interrupt
+  controller set up";
 - hwinfo ends with `finish()`, and everything ends with `boot()`.
 
 ## The callouts a board writes
